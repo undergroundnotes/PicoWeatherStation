@@ -22,6 +22,8 @@ public class Game1 : Game
 
     List<WeatherStation> weatherStations;
 
+    private WeatherMap weatherMap;
+
     private string infoLabel = "";
 
     private float currentTimeInSeconds = 0;
@@ -32,7 +34,7 @@ public class Game1 : Game
     // This doesnt need to be a multiple of the data step inc, if we adjust the rounding formula
     // todo
 
-
+    private float _lastRenderedTime = float.NegativeInfinity;
 
     public Game1()
     {
@@ -51,30 +53,25 @@ public class Game1 : Game
         // Read each file and build array
         weatherStations = ConstructWeatherStations();
 
-        // n = 1
+        // n = 2
+        weatherStations[0].NormalizedPosition = new Vector2(0.25f, 0.50f);
+        weatherStations[1].NormalizedPosition = new Vector2(0.85f, 0.65f);
 
-        WeatherStation station = weatherStations[0];
+        weatherMap = new WeatherMap(
+            GraphicsDevice,
+            new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height),
+            weatherStations,
+            stationRadius: 16
+        );
 
-        station.Position = new Vector2(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
-
-        station.OnEnter += (sender, args) =>
-        {
-            infoLabel = ((WeatherStation)sender).GenerateStringLabel();
-        };
-
-        station.OnExit += (sender, args) =>
-        {
-            infoLabel = "";
-        };
-
+        weatherMap.RegenerateFieldTexture(currentTimeInSeconds, weatherStations[0], weatherStations[1]);
+        _lastRenderedTime = currentTimeInSeconds;
     }
 
     protected override void LoadContent()
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
-
         font = Content.Load<SpriteFont>("font");
-
     }
 
     protected override void Update(GameTime gameTime)
@@ -94,11 +91,17 @@ public class Game1 : Game
             accumulatedTime -= timeIncrementInterval;
         }
 
-
-        foreach (WeatherStation s in weatherStations)
+        if (currentTimeInSeconds != _lastRenderedTime)
         {
-            s.Update(_currentMouseState, currentTimeInSeconds);
+            weatherMap.RegenerateFieldTexture(currentTimeInSeconds, weatherStations[0], weatherStations[1]);
+            _lastRenderedTime = currentTimeInSeconds;
         }
+
+
+        WeatherStation hovered = weatherMap.GetStationMouseOverlap(_currentMouseState);
+
+        infoLabel = hovered != null ? hovered.DescribeAtTime(currentTimeInSeconds) : "";
+
 
         base.Update(gameTime);
     }
@@ -109,14 +112,11 @@ public class Game1 : Game
 
         _spriteBatch.Begin();
 
-        foreach (WeatherStation s in weatherStations)
-        {
-            s.DrawStation(_spriteBatch, gameTime);
-        }
+        weatherMap.Draw(_spriteBatch, currentTimeInSeconds);
 
         _spriteBatch.DrawString(font, infoLabel, new Vector2(8, 8), Color.White);
 
-        //_spriteBatch.DrawString(font, "CurrentTimeInSeconds: " + currentTimeInSeconds, new Vector2((GraphicsDevice.Viewport.Width / 2) - 64, GraphicsDevice.Viewport.Height - 32), Color.White);
+
         _spriteBatch.DrawString(font, "CurrentTimeInSeconds: " + currentTimeInSeconds, new Vector2(8, 154), Color.White);
 
         _spriteBatch.End();
@@ -156,13 +156,23 @@ public class Game1 : Game
 
                 string cleanName = fileName.Split("\\")[^1];
 
-                stations.Add(new WeatherStation(
-                    GraphicsDevice,
+                WeatherStation station = new WeatherStation(
                     cleanName,
                     Vector2.One,
-                    16,
                     data
-                ));
+                );
+
+                station.OnEnter += (sender, args) =>
+                {
+                    infoLabel = ((WeatherStation)sender).GenerateStringLabel();
+                };
+
+                station.OnExit += (sender, args) =>
+                {
+                    infoLabel = "";
+                };
+
+                stations.Add(station);
 
             }
             catch (Exception e)

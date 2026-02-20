@@ -1,0 +1,6 @@
+1. [ ] Remove concept of time from the weatherStation. Treat the station like a db
+2. [ ] Implement Windspeed, as seperate list...
+    1. [ ] All that extra stuff....
+3. [ ] All station logic placed in WeatherMap
+4. [ ] use actual data
+    1. [ ] Tune weather color min/max to match data
