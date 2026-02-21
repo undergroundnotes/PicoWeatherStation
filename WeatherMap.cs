@@ -48,11 +48,6 @@ public class WeatherMap
         return null;
     }
 
-    public WeatherData? GetWeatherDataAtMouse(MouseState mouse)
-    {
-        return null;
-    }
-
     public void Draw(SpriteBatch sb, float simulationTime)
     {
         sb.Draw(_fieldTex, DestRect, Color.White);
@@ -61,7 +56,7 @@ public class WeatherMap
         {
             Vector2 staionRenderPosition = NormalizedToScreen(s.NormalizedPosition);
 
-            Color stationColor = WeatherColor.ToColor(s.GetReadingAtTime(simulationTime));
+            Color stationColor = WeatherColor.ToColor(s.GetStationDataAtTime(simulationTime));
 
             sb.Draw(_stationTex, staionRenderPosition, null, stationColor, 0f, new Vector2(_stationRadius), 1f, SpriteEffects.None, 0f);
         }
@@ -93,14 +88,16 @@ public class WeatherMap
 
                 float t = SegmentT(A, B, p);
 
-                WeatherData wa = a.GetReadingAtTime(simulationTime);
-                WeatherData wb = b.GetReadingAtTime(simulationTime);
+                StationData wa = a.GetStationDataAtTime(simulationTime);
+                StationData wb = b.GetStationDataAtTime(simulationTime);
 
-                WeatherData blended = new WeatherData(
-                    simulationTime,
-                    MathHelper.Lerp(wa.temperature, wb.temperature, t),
-                    MathHelper.Lerp(wa.pressure, wb.pressure, t),
-                    MathHelper.Lerp(wa.humidity, wb.humidity, t)
+                StationData blended = new StationData(
+                    weatherTimeReading: simulationTime, // TODO: change
+                    WindTimeReading: simulationTime, // TODO: change
+                    temperature: MathHelper.Lerp(wa.temperature, wb.temperature, t),
+                    pressure: MathHelper.Lerp(wa.pressure, wb.pressure, t),
+                    humidity: MathHelper.Lerp(wa.humidity, wb.humidity, t),
+                    windSpeed: MathHelper.Lerp(wa.windSpeed, wb.windSpeed, t)
                 );
 
                 _fieldPixels[y * w + x] = WeatherColor.ToColor(blended);

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -18,6 +17,7 @@ public class Game1 : Game
     private SpriteFont font;
 
     private string weatherDataDirectory = "WeatherData"; // When changing this, make sure to update the csproj
+    // For now I will assert that the wind data is the same file with _wind at the end
     private string delimiter = "\t";
 
     List<WeatherStation> weatherStations;
@@ -28,12 +28,11 @@ public class Game1 : Game
 
     private float currentTimeInSeconds = 0;
     private float accumulatedTime = 0f;
-    private float timeIncrementInterval = 0.6f;
-    private float simulationStep = 0.5f;// This needs to be a multiple of the data step inc
+    private float timeIncrementInterval = 0.5f;
+    private float simulationStep = 0.1f;// This needs to be a multiple of the data step inc
     // This implies another assertion, that all datasets have the same step size
     // This doesnt need to be a multiple of the data step inc, if we adjust the rounding formula
     // todo
-
     private float _lastRenderedTime = float.NegativeInfinity;
 
     public Game1()
@@ -99,9 +98,7 @@ public class Game1 : Game
 
 
         WeatherStation hovered = weatherMap.GetStationMouseOverlap(_currentMouseState);
-
         infoLabel = hovered != null ? hovered.DescribeAtTime(currentTimeInSeconds) : "";
-
 
         base.Update(gameTime);
     }
@@ -114,7 +111,7 @@ public class Game1 : Game
 
         weatherMap.Draw(_spriteBatch, currentTimeInSeconds);
 
-        _spriteBatch.DrawString(font, infoLabel, new Vector2(8, 8), Color.White);
+        _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.White);
 
 
         _spriteBatch.DrawString(font, "CurrentTimeInSeconds: " + currentTimeInSeconds, new Vector2(8, 154), Color.White);
@@ -125,8 +122,119 @@ public class Game1 : Game
         base.Draw(gameTime);
     }
 
-
     private List<WeatherStation> ConstructWeatherStations()
+    {
+        // Ok. I will assert that any data file named `x.txt`, aslo has an `x_wind.txt` for its wind data.
+
+        // Thus, I will need to do 2 passes for constructing the data
+        // First pass, avoid the _wind, second, only the _wind
+        // no. First we split the lists loop through first, while searching the second
+
+        string folderPath = Path.Combine(Directory.GetCurrentDirectory(), weatherDataDirectory);
+        System.Console.WriteLine(folderPath);
+        string[] allFiles = Directory.GetFiles(folderPath, "*.txt");
+        List<string> weatherDataFiles = new List<string>(allFiles.Length / 2);
+        LinkedList<string> windDataFiles = new LinkedList<string>();
+
+        // This is on init; I dont care about speed
+        foreach (string file in allFiles)
+        {
+            if (file.Contains("_wind"))
+                windDataFiles.AddLast(file);
+            else
+                weatherDataFiles.Add(file);
+        }
+        if (weatherDataFiles.Count != windDataFiles.Count) throw new Exception("Data files are not fully matched");
+
+        List<WeatherStation> stations = new List<WeatherStation>(weatherDataFiles.Count);
+
+        foreach (string file in weatherDataFiles)
+        {
+            System.Console.WriteLine("Processing file: " + file);
+            List<WeatherData> weatherDatas = new List<WeatherData>();
+            List<WindData> windDatas = new List<WindData>();
+
+            try
+            {
+                // 1 Read normal data file based off loop index
+                foreach (string lines in File.ReadLines(file))
+                {
+                    string[] tokens = lines.Split(delimiter);
+
+                    float time = float.Parse(tokens[0]);
+                    float temp = float.Parse(tokens[1]);
+                    float pres = float.Parse(tokens[2]);
+                    float hum = float.Parse(tokens[3]);
+
+                    weatherDatas.Add(new WeatherData(time, temp, pres, hum));
+                }
+
+                //2 Read _wind.txt file
+                // Loop through linked list to get node, then remove it after, so we are iterating over it again
+                string baseName = Path.GetFileNameWithoutExtension(file);
+                string expectedWindNameNoExt = baseName + "_wind";
+
+                LinkedListNode<string> node = windDataFiles.First;
+                LinkedListNode<string> matchNode = null;
+
+                while (node != null)
+                {
+                    string windFile = node.Value;
+                    string windNameNoExt = Path.GetFileNameWithoutExtension(windFile);
+
+                    if (string.Equals(windNameNoExt, expectedWindNameNoExt, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchNode = node;
+                        break;
+                    }
+
+                    node = node.Next;
+                }
+
+                if (matchNode == null) throw new FileNotFoundException("Missing wind file for: " + file);
+
+                string matchedWindFile = matchNode.Value;
+
+                // Read wind file
+                foreach (string line in File.ReadLines(matchedWindFile))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    string[] tokens = line.Split(delimiter);
+
+                    float time = float.Parse(tokens[0]);
+                    float wind = float.Parse(tokens[1]);
+
+                    windDatas.Add(new WindData(time, wind));
+                }
+
+                windDataFiles.Remove(matchNode);// remove node, so next search is faster
+
+
+                // Lastely, Construct object
+                WeatherStation station = new WeatherStation(
+                    baseName,
+                    Vector2.One,
+                    weatherDatas,
+                    windDatas
+                );
+
+                stations.Add(station);
+            }
+            catch (Exception e)
+            {
+                throw new FileLoadException("Error reading file: " + file + "\n" + e.Message);
+                // Probably crash here.
+            }
+        }
+
+        return stations;
+    }
+
+
+
+
+    /*private List<WeatherStation> ConstructWeatherStations()
     {
         string folderPath = Path.Combine(Directory.GetCurrentDirectory(), weatherDataDirectory);
         System.Console.WriteLine(folderPath);
@@ -162,18 +270,7 @@ public class Game1 : Game
                     data
                 );
 
-                station.OnEnter += (sender, args) =>
-                {
-                    infoLabel = ((WeatherStation)sender).GenerateStringLabel();
-                };
-
-                station.OnExit += (sender, args) =>
-                {
-                    infoLabel = "";
-                };
-
                 stations.Add(station);
-
             }
             catch (Exception e)
             {
@@ -183,5 +280,5 @@ public class Game1 : Game
         }
 
         return stations;
-    }
+    }*/
 }

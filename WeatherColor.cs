@@ -5,7 +5,7 @@ namespace DataVisualizer;
 
 public static class WeatherColor
 {
-    // Fully contingent on WeatherData.cs
+    // Fully contingent on StationData.cs
     private static int TEMP_MIN = 15;
     private static int TEMP_MAX = 24;
 
@@ -15,8 +15,8 @@ public static class WeatherColor
     private static int HUM_MIN = 40;
     private static int HUM_MAX = 100;
 
-    private static int WIND_MIN = 40;
-    private static int WIND_MAX = 100;
+    private static int WIND_MIN = 100;
+    private static int WIND_MAX = 200;
 
     private static float Normalize(float value, float min, float max)
     {
@@ -24,12 +24,12 @@ public static class WeatherColor
         return Math.Clamp((value - min) / (max - min), 0f, 1f);
     }
 
-    public static Color ToColor(WeatherData weather)
+    public static Color ToColor(StationData weather)
     {
         float c = Normalize(weather.temperature, TEMP_MIN, TEMP_MAX);
         float m = Normalize(weather.pressure, PRES_MIN, PRES_MAX);
         float y = Normalize(weather.humidity, HUM_MIN, HUM_MAX);
-        float k = 0.5f;// TODO: WIND SPEED
+        float k = Normalize(weather.windSpeed, WIND_MIN, WIND_MAX);
 
         // https://www.rapidtables.com/convert/color/cmyk-to-rgb.html
         float r = (1f - c) * (1f - k);

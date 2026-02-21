@@ -1,6 +1,9 @@
 namespace DataVisualizer;
 
-public struct WindData
+public record struct WindData(float time, float windspeed)
 {
-    
+    public override string ToString()
+    {
+        return $"Time:{time}\nWindSpeed:{windspeed}";
+    }
 }
