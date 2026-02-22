@@ -26,10 +26,57 @@ public static class WeatherColor
 
     public static Color ToColor(StationData weather)
     {
-        float c = 1f - Normalize(weather.temperature, TEMP_MIN, TEMP_MAX);
-        float m = Normalize(weather.pressure, PRES_MIN, PRES_MAX);
-        float y = Normalize(weather.humidity, HUM_MIN, HUM_MAX);
-        float k = Normalize(weather.windSpeed, WIND_MIN, WIND_MAX) / 1.25f;
+        //return FromCYMK(weather);
+        //return FromHSL(weather);
+        return FromRGB(weather);
+    }
+
+    private static Color FromRGB(StationData weather)
+    {
+        float r = Normalize(weather.temperature, TEMP_MIN, TEMP_MAX);
+        float g = Normalize(weather.humidity, HUM_MIN, HUM_MAX);
+        float b = Normalize(weather.windSpeed, WIND_MIN, WIND_MAX);
+
+        return new Color(r, g, b, 1f);
+    }
+
+    private static Color FromHSL(StationData weather)
+    {
+        float temp = Normalize(weather.temperature, TEMP_MIN, TEMP_MAX);
+        float hum = Normalize(weather.humidity, HUM_MIN, HUM_MAX);
+        float wind = Normalize(weather.windSpeed, WIND_MIN, WIND_MAX);
+        // https://www.rapidtables.com/convert/color/hsl-to-rgb.html
+
+        int h = (int)(temp * 360f);
+        float s = hum;//MathHelper.Lerp(0.25f, 1f, hum);
+        float l = MathHelper.Lerp(0.25f, 0.65f, wind);
+
+
+        float c = (1f - MathF.Abs(2f * l - 1f)) * s;
+        float x = c * (1f - MathF.Abs((h) % 2 - 1));
+        float m = l - c / 2f;
+
+        float r1, g1, b1;
+        if (h < 60f) { r1 = c; g1 = x; b1 = 0f; }
+        else if (h < 120) { r1 = x; g1 = c; b1 = 0f; }
+        else if (h < 180) { r1 = 0f; g1 = c; b1 = x; }
+        else if (h < 240) { r1 = 0f; g1 = x; b1 = c; }
+        else if (h < 300) { r1 = x; g1 = 0f; b1 = c; }
+        else { r1 = c; g1 = 0f; b1 = x; }
+
+        float r = r1 + m;
+        float g = g1 + m;
+        float b = b1 + m;
+
+        return new Color(r, g, b, 1f);
+    }
+
+    private static Color FromCYMK(StationData weather)
+    {
+        float c = MathHelper.Lerp(0.2f, 1, 1f - Normalize(weather.temperature, TEMP_MIN, TEMP_MAX));
+        float m = MathHelper.Lerp(0.2f, 1, Normalize(weather.pressure, PRES_MIN, PRES_MAX));
+        float y = MathHelper.Lerp(0.2f, 1, Normalize(weather.humidity, HUM_MIN, HUM_MAX));
+        float k = MathHelper.Lerp(0.2f, 0.7f, Normalize(weather.windSpeed, WIND_MIN, WIND_MAX) / 1.25f);
 
         // https://www.rapidtables.com/convert/color/cmyk-to-rgb.html
         float r = (1f - c) * (1f - k);

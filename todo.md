@@ -6,6 +6,8 @@
     1. [ ] Tune weather color min/max to match data
     2. [ ] Calculate min max for color
 5. [x] Implement to show data from ANY mouse location, this requires either doing calculation or embeding data into each pixel when we build the field. Done through recalc. Lerping a single point is not expensive
+- [x] Isobar
+- [ ] Switch to HSV color
 
 
 questions after adding data:
