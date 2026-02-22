@@ -10,15 +10,15 @@ public class WeatherStation
     public Vector2 NormalizedPosition { get; set; }
 
     // This is always ordered by time
-    private List<WeatherData> weatherData; // Yes, this is a bad name. I dont care. This contains temp, pres, hum
-    private List<WindData> windData;
+    public readonly List<WeatherData> WeatherData;// Yes, this is a bad name. I dont care. This contains temp, pres, hum
+    public readonly List<WindData> WindData;
 
     public WeatherStation(string label, Vector2 position, List<WeatherData> weatherDatas, List<WindData> windDatas)
     {
         Label = label;
         NormalizedPosition = position;
-        weatherData = weatherDatas;
-        windData = windDatas;
+        WeatherData = weatherDatas;
+        WindData = windDatas;
     }
 
     /* public WeatherData GetReadingAtTime(float simulationTime)
@@ -38,9 +38,9 @@ public class WeatherStation
         // Get closest data from weather data
         // Get closest data from windData
         // Combine into StationData
-        WeatherData weather = weatherData[ClosestIndexByTime(weatherData, simulationTime, x => x.time)];
+        WeatherData weather = WeatherData[ClosestIndexByTime(WeatherData, simulationTime, x => x.time)];
 
-        WindData wind = windData[ClosestIndexByTime(windData, simulationTime, x => x.time)];
+        WindData wind = WindData[ClosestIndexByTime(WindData, simulationTime, x => x.time)];
 
         return new StationData(
             weatherTimeReading: weather.time,

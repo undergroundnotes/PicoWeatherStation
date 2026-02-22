@@ -29,11 +29,14 @@ public class Game1 : Game
     private float currentTimeInSeconds = 0;
     private float accumulatedTime = 0f;
     private float timeIncrementInterval = 0.5f;
-    private float simulationStep = 0.1f;// This needs to be a multiple of the data step inc
+    private float simulationStep = 0.05f;// This needs to be a multiple of the data step inc
     // This implies another assertion, that all datasets have the same step size
     // This doesnt need to be a multiple of the data step inc, if we adjust the rounding formula
     // todo
     private float _lastRenderedTime = float.NegativeInfinity;
+
+    private const float ISO_BAR_STEP = 0.05f;
+    private float _calculatedIsoStep;
 
     public Game1()
     {
@@ -52,6 +55,11 @@ public class Game1 : Game
         // Read each file and build array
         weatherStations = ConstructWeatherStations();
 
+        // Calculate color min max values
+        WeatherColor.SetRanges(weatherStations);
+
+        _calculatedIsoStep = (WeatherColor.PRES_MAX - WeatherColor.PRES_MIN) * ISO_BAR_STEP;
+
         // n = 2
         weatherStations[0].NormalizedPosition = new Vector2(0.25f, 0.50f);
         weatherStations[1].NormalizedPosition = new Vector2(0.85f, 0.65f);
@@ -60,6 +68,7 @@ public class Game1 : Game
             GraphicsDevice,
             new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height),
             weatherStations,
+            isoBarStep: ISO_BAR_STEP,
             stationRadius: 16
         );
 
@@ -97,8 +106,21 @@ public class Game1 : Game
         }
 
 
-        WeatherStation hovered = weatherMap.GetStationMouseOverlap(_currentMouseState);
-        infoLabel = hovered != null ? hovered.DescribeAtTime(currentTimeInSeconds) : "";
+        WeatherStation hoveredStation = weatherMap.GetStationMouseOverlap(_currentMouseState);
+        if (hoveredStation != null)
+        {
+            infoLabel = hoveredStation.DescribeAtTime(currentTimeInSeconds);
+        }
+        else
+        {
+            var blended = weatherMap.GetInterpolatedDataAtMouse(
+                _currentMouseState,
+                currentTimeInSeconds,
+                weatherStations[0],
+                weatherStations[1]);
+
+            infoLabel = blended.HasValue ? blended.Value.ToString() : "";
+        }
 
         base.Update(gameTime);
     }
@@ -114,7 +136,9 @@ public class Game1 : Game
         _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.White);
 
 
-        _spriteBatch.DrawString(font, "CurrentTimeInSeconds: " + currentTimeInSeconds, new Vector2(8, 154), Color.White);
+        _spriteBatch.DrawString(font,
+        "CurrentTimeInSeconds: " + Math.Round(currentTimeInSeconds, 3) + $"\nIsobar step ({ISO_BAR_STEP * 100}%): {_calculatedIsoStep}",
+        new Vector2(8, 154), Color.White);
 
         _spriteBatch.End();
 
