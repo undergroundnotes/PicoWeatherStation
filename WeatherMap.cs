@@ -18,6 +18,7 @@ public class WeatherMap
     private Color[] _fieldPixels;
 
     private readonly float _isoStep = 0.05f;
+    private List<float> isoBarLocations = new List<float>();
 
     public WeatherMap(GraphicsDevice gd, Rectangle destRect, List<WeatherStation> stations, int stationRadius = 10, float isoBarStep = 0.05f)
     {
@@ -62,7 +63,7 @@ public class WeatherMap
         Vector2 A = NormalizedToScreen(a.NormalizedPosition);
         Vector2 B = NormalizedToScreen(b.NormalizedPosition);
 
-        float linePos = SegmentPosition(A, B, p);
+        float linePos = ProjectOnLine(A, B, p);
 
         StationData stationDataA = a.GetStationDataAtTime(simulationTime);
         StationData stationDataB = b.GetStationDataAtTime(simulationTime);
@@ -107,7 +108,7 @@ public class WeatherMap
         float globalDiff = WeatherColor.PRES_MAX - WeatherColor.PRES_MIN;
         float localDiff = endPressure - startPressure;
 
-        List<float> isoBarLocations = new List<float>();
+        isoBarLocations.Clear();
         for (float i = _isoStep; i < 1f; i += _isoStep)
         {
             // Ok. I want to calculate where the isobars will be representing a 5% change (determined by min max)
@@ -140,7 +141,7 @@ public class WeatherMap
             {
                 Vector2 p = new Vector2(DestRect.X + x, DestRect.Y + y);
 
-                float linePosition = SegmentPosition(A, B, p);
+                float linePosition = ProjectOnLine(A, B, p);
 
                 StationData blended = new StationData(
                     weatherTimeReading: simulationTime, // TODO: change
@@ -170,12 +171,12 @@ public class WeatherMap
         _fieldTex.SetData(_fieldPixels);
     }
 
-    private float SegmentPosition(Vector2 a, Vector2 b, Vector2 p)
+    private float ProjectOnLine(Vector2 a, Vector2 b, Vector2 p)
     {
+        // I need to project arbitray point p, on the line created from a to b
+        // projection formula!
         Vector2 ab = b - a;
-        float denom = Vector2.Dot(ab, ab);
-        if (denom <= 0.0001f) return 0f;
-        float pos = Vector2.Dot(p - a, ab) / denom;
+        float pos = Vector2.Dot(p - a, ab) / Vector2.Dot(ab, ab);
         return MathHelper.Clamp(pos, 0f, 1f);
     }
 

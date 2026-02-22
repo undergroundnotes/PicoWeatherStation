@@ -105,7 +105,6 @@ public class Game1 : Game
             _lastRenderedTime = currentTimeInSeconds;
         }
 
-
         WeatherStation hoveredStation = weatherMap.GetStationMouseOverlap(_currentMouseState);
         if (hoveredStation != null)
         {
