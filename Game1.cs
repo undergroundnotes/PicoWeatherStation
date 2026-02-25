@@ -29,7 +29,7 @@ public class Game1 : Game
     private float currentTimeInSeconds = 0;
     private float accumulatedTime = 0f;
     private float timeIncrementInterval = 0.5f;
-    private float simulationStep = 0.05f;// This needs to be a multiple of the data step inc
+    private float simulationStep = 0.5f;// This needs to be a multiple of the data step inc
     // This implies another assertion, that all datasets have the same step size
     // This doesnt need to be a multiple of the data step inc, if we adjust the rounding formula
     // todo
@@ -62,13 +62,13 @@ public class Game1 : Game
 
         // n = 2
         weatherStations[0].NormalizedPosition = new Vector2(0.25f, 0.50f);
-        weatherStations[1].NormalizedPosition = new Vector2(0.85f, 0.65f);
+        weatherStations[1].NormalizedPosition = new Vector2(0.85f, 0.50f);
 
         weatherMap = new WeatherMap(
             GraphicsDevice,
             new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height),
             weatherStations,
-            isoBarStep: ISO_BAR_STEP,
+            isoBarStep: _calculatedIsoStep,
             stationRadius: 16
         );
 
@@ -112,11 +112,7 @@ public class Game1 : Game
         }
         else
         {
-            var blended = weatherMap.GetInterpolatedDataAtMouse(
-                _currentMouseState,
-                currentTimeInSeconds,
-                weatherStations[0],
-                weatherStations[1]);
+            var blended = weatherMap.GetInterpolatedDataAtMouse(_currentMouseState, currentTimeInSeconds, weatherStations[0], weatherStations[1]);
 
             infoLabel = blended.HasValue ? blended.Value.ToString() : "";
         }
