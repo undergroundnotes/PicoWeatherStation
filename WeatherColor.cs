@@ -48,7 +48,7 @@ public static class WeatherColor
         // https://www.rapidtables.com/convert/color/hsl-to-rgb.html
 
         // Normalization makes the values from 0 to
-        float h = MathHelper.Lerp(230f, 360f, temp); // This puts it in 0..360, however starting from 220, which is red
+        float h = MathHelper.Lerp(230f, 0f, temp); // This puts it in 0..360, however starting from 220, which is blue 360 red
         float s = MathHelper.Lerp(0.25f, 1f, hum);
         float l = MathHelper.Lerp(0.5f, 0.9f, wind);
 
