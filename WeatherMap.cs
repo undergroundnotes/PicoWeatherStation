@@ -109,53 +109,99 @@ public class WeatherMap
         float localDiff = endPressure - startPressure;
 
         isoBarLocations.Clear();
-        for (float i = _isoStep; i < 1f; i += _isoStep)
+
+        if (Math.Abs(localDiff) > _isoStep)// diff greater than 5%
         {
-            // Ok. I want to calculate where the isobars will be representing a 5% change (determined by min max)
+            float small = startPressure < endPressure ? startPressure : endPressure;
+            float big = endPressure + startPressure - small;
 
-            // The local gradient is 0.25
-            // global min is 1, gmax is 11. thus diff is 10
-            // I want to have an iso bar is 2.5, 5, 7.5 (global step is 2.5)
-            // offset by the start, so global isobars are at 3.5, 6, 8.5
-            float globalStep = i * globalDiff;
-            float globalIsobar = globalStep + WeatherColor.PRES_MIN;
-
-            // local min is 2, lmax is 8. dif is 6
-            // So on my local scale: STARTING at 2. isobars are at 4.5, 7
-            // from before: iso = start + i * diff...
-            // I lost my goat explination when this file got corrupted, but whatever.
-            // I dont want to necessarily convert scale, I want to USE the global scale, but for the range of local
-            // isoBarAtStep * localDiff + globalIsobar = pressure(step)
-            float isoBarAtStep = (globalIsobar - startPressure) / localDiff;
-
-            if (isoBarAtStep >= 0f && isoBarAtStep <= 1f)
-                isoBarLocations.Add(isoBarAtStep);
+            for (float i = small; i < big; i += _isoStep)
+            {
+                // It is gaurenteed that everything in this loop an isobar
+                isoBarLocations.Add(i);
+            }
         }
 
-        float isoThickness = 1f;
-        float lineTorlerance = isoThickness / distance;
-
-        for (int y = 0; y < DestRect.Height; y++)
+        /*for (float i = _isoStep; i < 1f; i += _isoStep)// This must be wrong. No way at 1
         {
-            for (int x = 0; x < DestRect.Width; x++)
+            // Ok. New thought.
+            /*
+            _isoStep is 5% of the global max pressure difference.
+            So for example, we should loop 20 times
+            // No. I should pre calc the absolute isobar values then place isobars on those points????
+            // No. that would be wrong.
+
+            // What I want:
+            - At station A, the pressure is 10. Station B is 110. data = 1. Thus the diff is 100; step is 5
+            - I want an isobar at every increment of 5 FROM station A pressure.
+            - Thus, I have isobars at 15,20,25,...95
+
+            So then, I used the calculated isostep NEVER A LOCAL. Do I even need this loop? probably.. because floats
+            First I figure out the direction, so I am walking positively. ex: A < B
+            I place iso bars on A + (i*step), which is 15,20,25...inf
+            I stop at B - 5%
+
+            Cases: 
+            - 0 iso bar
+            - 1 iso bar
+            - many iso bars
+
+            When there is 0 isobars, that means the diff of A,B is less than 5%
+            When there is 1 isobar, that means the diff of A,B is greater or equal to 5%, but less than 10%
+
+            I conclude that, If diff > 5%, I start my loop at smaller and walk up by 5% until greater -5%
+            */
+
+        // --
+        // Ok. I want to calculate where the isobars will be representing a 5% change (determined by min max)
+
+        // The local gradient is 0.25
+        // global min is 1, gmax is 11. thus diff is 10
+        // I want to have an iso bar is 2.5, 5, 7.5 (global step is 2.5)
+        // offset by the start, so global isobars are at 3.5, 6, 8.5
+        float globalStep = i * globalDiff;
+        float globalIsobar = globalStep + WeatherColor.PRES_MIN;
+
+        // local min is 2, lmax is 8. dif is 6
+        // So on my local scale: STARTING at 2. isobars are at 4.5, 7
+        // from before: iso = start + i * diff...
+        // I lost my goat explination when this file got corrupted, but whatever.
+        // I dont want to necessarily convert scale, I want to USE the global scale, but for the range of local
+        // isoBarAtStep * localDiff + globalIsobar = pressure(step)
+        float isoBarAtStep = (globalIsobar - startPressure) / localDiff;
+
+        // I need to incorperate the end pressure... so its proper...
+
+        if (isoBarAtStep >= 0.0001f && isoBarAtStep <= 1.1f)
+            isoBarLocations.Add(isoBarAtStep);
+    }*/
+
+
+
+        float isoThickness = 1f;
+    float lineTorlerance = isoThickness / distance;
+
+        for (int y = 0; y<DestRect.Height; y++)
+        {
+            for (int x = 0; x<DestRect.Width; x++)
             {
                 Vector2 p = new Vector2(DestRect.X + x, DestRect.Y + y);
 
-                float linePosition = ProjectOnLine(A, B, p);
+    float linePosition = ProjectOnLine(A, B, p);
 
-                StationData blended = new StationData(
-                    weatherTimeReading: simulationTime, // TODO: change
-                    WindTimeReading: simulationTime, // TODO: change
-                    temperature: MathHelper.Lerp(stationDataA.temperature, stationDataB.temperature, linePosition),
-                    pressure: MathHelper.Lerp(stationDataA.pressure, stationDataB.pressure, linePosition),
-                    humidity: MathHelper.Lerp(stationDataA.humidity, stationDataB.humidity, linePosition),
-                    windSpeed: MathHelper.Lerp(stationDataA.windSpeed, stationDataB.windSpeed, linePosition)
-                );
+    StationData blended = new StationData(
+        weatherTimeReading: simulationTime, // TODO: change
+        WindTimeReading: simulationTime, // TODO: change
+        temperature: MathHelper.Lerp(stationDataA.temperature, stationDataB.temperature, linePosition),
+        pressure: MathHelper.Lerp(stationDataA.pressure, stationDataB.pressure, linePosition),
+        humidity: MathHelper.Lerp(stationDataA.humidity, stationDataB.humidity, linePosition),
+        windSpeed: MathHelper.Lerp(stationDataA.windSpeed, stationDataB.windSpeed, linePosition)
+    );
 
-                Color pixelColor = WeatherColor.ToColor(blended);
+    Color pixelColor = WeatherColor.ToColor(blended);
 
                 // post color step
-                for (int i = 0; i < isoBarLocations.Count; i++)
+                for (int i = 0; i<isoBarLocations.Count; i++)
                 {
                     if (MathF.Abs(linePosition - isoBarLocations[i]) <= lineTorlerance)
                     {
@@ -172,48 +218,48 @@ public class WeatherMap
     }
 
     private float ProjectOnLine(Vector2 a, Vector2 b, Vector2 p)
+{
+    // I need to project arbitray point p, on the line created from a to b
+    // projection formula!
+    Vector2 ab = b - a;
+    float pos = Vector2.Dot(p - a, ab) / Vector2.Dot(ab, ab);
+    return MathHelper.Clamp(pos, 0f, 1f);
+}
+
+private Texture2D CreateCircleTexture(GraphicsDevice graphicsDevice, int radius, Color fillColor, int stroke, Color strokeColor)
+{
+    int diameter = radius * 2;
+    Texture2D texture = new Texture2D(graphicsDevice, diameter, diameter);
+
+    Color[] data = new Color[diameter * diameter];
+
+    Vector2 center = new Vector2(radius);
+
+    for (int y = 0; y < diameter; y++)
     {
-        // I need to project arbitray point p, on the line created from a to b
-        // projection formula!
-        Vector2 ab = b - a;
-        float pos = Vector2.Dot(p - a, ab) / Vector2.Dot(ab, ab);
-        return MathHelper.Clamp(pos, 0f, 1f);
-    }
-
-    private Texture2D CreateCircleTexture(GraphicsDevice graphicsDevice, int radius, Color fillColor, int stroke, Color strokeColor)
-    {
-        int diameter = radius * 2;
-        Texture2D texture = new Texture2D(graphicsDevice, diameter, diameter);
-
-        Color[] data = new Color[diameter * diameter];
-
-        Vector2 center = new Vector2(radius);
-
-        for (int y = 0; y < diameter; y++)
+        for (int x = 0; x < diameter; x++)
         {
-            for (int x = 0; x < diameter; x++)
+            Vector2 pos = new Vector2(x, y);
+            float distance = Vector2.Distance(pos, center);
+
+            int index = y * diameter + x;
+
+            if (distance <= radius)
             {
-                Vector2 pos = new Vector2(x, y);
-                float distance = Vector2.Distance(pos, center);
-
-                int index = y * diameter + x;
-
-                if (distance <= radius)
-                {
-                    if (distance >= radius - stroke)
-                        data[index] = strokeColor;
-                    else
-                        data[index] = fillColor;
-
-                }
+                if (distance >= radius - stroke)
+                    data[index] = strokeColor;
                 else
-                {
-                    data[index] = Color.Transparent;
-                }
+                    data[index] = fillColor;
+
+            }
+            else
+            {
+                data[index] = Color.Transparent;
             }
         }
-
-        texture.SetData(data);
-        return texture;
     }
+
+    texture.SetData(data);
+    return texture;
+}
 }
