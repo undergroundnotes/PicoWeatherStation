@@ -27,8 +27,8 @@ public static class WeatherColor
     public static Color ToColor(StationData weather)
     {
         //return FromCYMK(weather);
-        //return FromHSL(weather);
-        return FromRGB(weather);
+        return FromHSL(weather);
+        //return FromRGB(weather);
     }
 
     private static Color FromRGB(StationData weather)
@@ -47,13 +47,14 @@ public static class WeatherColor
         float wind = Normalize(weather.windSpeed, WIND_MIN, WIND_MAX);
         // https://www.rapidtables.com/convert/color/hsl-to-rgb.html
 
-        int h = (int)(temp * 360f);
-        float s = hum;//MathHelper.Lerp(0.25f, 1f, hum);
-        float l = MathHelper.Lerp(0.25f, 0.65f, wind);
+        // Normalization makes the values from 0 to
+        float h = MathHelper.Lerp(220f, 0f, temp); // This puts it in 0..360, however starting from 220, which is red
+        float s = MathHelper.Lerp(0.25f, 1f, hum);
+        float l = MathHelper.Lerp(0.5f, 0.9f, wind);
 
 
         float c = (1f - MathF.Abs(2f * l - 1f)) * s;
-        float x = c * (1f - MathF.Abs((h) % 2 - 1));
+        float x = c * (1f - MathF.Abs(((h / 60) % 2f) - 1f));
         float m = l - c / 2f;
 
         float r1, g1, b1;
@@ -64,11 +65,11 @@ public static class WeatherColor
         else if (h < 300) { r1 = x; g1 = 0f; b1 = c; }
         else { r1 = c; g1 = 0f; b1 = x; }
 
-        float r = r1 + m;
-        float g = g1 + m;
-        float b = b1 + m;
+        float r = (r1 + m);
+        float g = (g1 + m);
+        float b = (b1 + m);
 
-        return new Color(r, g, b, 1f);
+        return new Color(r, g, b);
     }
 
     private static Color FromCYMK(StationData weather)
