@@ -10,24 +10,15 @@ public class WeatherStation
     public Vector2 NormalizedPosition { get; set; }
 
     // This is always ordered by time
-    public readonly List<WeatherData> WeatherData;// Yes, this is a bad name. I dont care. This contains temp, pres, hum
-    public readonly List<WindData> WindData;
+    public readonly List<StationData> StationDatas;// Yes, this is a bad name. I dont care. This contains temp, pres, hum
 
-    public WeatherStation(string label, Vector2 position, List<WeatherData> weatherDatas, List<WindData> windDatas)
+    public WeatherStation(string label, Vector2 position, List<StationData> stationDatas)
     {
         Label = label;
         NormalizedPosition = position;
-        WeatherData = weatherDatas;
-        WindData = windDatas;
+        StationDatas = stationDatas;
+        
     }
-
-    /* public WeatherData GetReadingAtTime(float simulationTime)
-     {
-         int index = (int)MathF.Round(simulationTime / _timeStep);
-         index = Math.Clamp(index, 0, weatherData.Count - 1);
-         return weatherData[index];
-     }*/
-
     public string DescribeAtTime(float simulationTime)
     {
         return $"{Label}\n{GetStationDataAtTime(simulationTime).ToString()}";
@@ -35,21 +26,8 @@ public class WeatherStation
 
     public StationData GetStationDataAtTime(float simulationTime)
     {
-        // Get closest data from weather data
-        // Get closest data from windData
-        // Combine into StationData
-        WeatherData weather = WeatherData[ClosestIndexByTime(WeatherData, simulationTime, x => x.time)];
-
-        WindData wind = WindData[ClosestIndexByTime(WindData, simulationTime, x => x.time)];
-
-        return new StationData(
-            weatherTimeReading: weather.time,
-            WindTimeReading: wind.time,
-            temperature: weather.temperature,
-            pressure: weather.pressure,
-            humidity: weather.humidity,
-            windSpeed: wind.windspeed
-        );
+        // Get closest data
+        return StationDatas[ClosestIndexByTime(StationDatas, simulationTime, x => x.Time)];
     }
 
     // BST, where givenTime is the query, objTime is the function to get the time from the struct/obj

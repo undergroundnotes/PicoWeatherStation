@@ -1,2 +1,2 @@
-﻿using var game = new DataVisualizer.Game1();
+﻿using var game = new DataVisualizer.LiveGame();
 game.Run();

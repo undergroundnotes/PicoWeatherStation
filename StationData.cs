@@ -1,13 +1,14 @@
 namespace DataVisualizer;
 
-// Used as a temperary intermediate to combine both wind and weather readings, as they are seperate
-public record struct StationData(float weatherTimeReading, float WindTimeReading, float temperature, float pressure, float humidity, float windSpeed)
+// todo: probably use date time instead of float
+public record struct StationData(float Time, float Temperature, float Pressure, float Humidity, float WindSpeed)
 {
     public override string ToString()
     {
-        return $"Weather({weatherTimeReading}):\n" +
-        $"\tTemperature: {temperature}\n\tPressure: {pressure}\n\tHumidity: {humidity}\n" +
-        $"Wind({WindTimeReading}):\n" +
-        $"\tWindspeed {windSpeed}";
+        return "Time: " + Time + "\n"
+        + "Temperature(C): " + Temperature + "\n" 
+        + "Humidity(%): " + Humidity + "\n"
+        + "Wind(km/h): " + WindSpeed + "\n"
+        + "Pressure: " + Pressure;
     }
 }

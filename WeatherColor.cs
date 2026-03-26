@@ -33,18 +33,18 @@ public static class WeatherColor
 
     private static Color FromRGB(StationData weather)
     {
-        float r = Normalize(weather.temperature, TEMP_MIN, TEMP_MAX);
-        float g = Normalize(weather.humidity, HUM_MIN, HUM_MAX);
-        float b = Normalize(weather.windSpeed, WIND_MIN, WIND_MAX);
+        float r = Normalize(weather.Temperature, TEMP_MIN, TEMP_MAX);
+        float g = Normalize(weather.Humidity, HUM_MIN, HUM_MAX);
+        float b = Normalize(weather.WindSpeed, WIND_MIN, WIND_MAX);
 
         return new Color(r, g, b, 1f);
     }
 
     private static Color FromHSL(StationData weather)
     {
-        float temp = Normalize(weather.temperature, TEMP_MIN, TEMP_MAX);
-        float hum = Normalize(weather.humidity, HUM_MIN, HUM_MAX);
-        float wind = Normalize(weather.windSpeed, WIND_MIN, WIND_MAX);
+        float temp = Normalize(weather.Temperature, TEMP_MIN, TEMP_MAX);
+        float hum = Normalize(weather.Humidity, HUM_MIN, HUM_MAX);
+        float wind = Normalize(weather.WindSpeed, WIND_MIN, WIND_MAX);
         // https://www.rapidtables.com/convert/color/hsl-to-rgb.html
 
         // Normalization makes the values from 0 to
@@ -74,10 +74,10 @@ public static class WeatherColor
 
     private static Color FromCYMK(StationData weather)
     {
-        float c = MathHelper.Lerp(0.2f, 1, 1f - Normalize(weather.temperature, TEMP_MIN, TEMP_MAX));
-        float m = MathHelper.Lerp(0.2f, 1, Normalize(weather.pressure, PRES_MIN, PRES_MAX));
-        float y = MathHelper.Lerp(0.2f, 1, Normalize(weather.humidity, HUM_MIN, HUM_MAX));
-        float k = MathHelper.Lerp(0.2f, 0.7f, Normalize(weather.windSpeed, WIND_MIN, WIND_MAX) / 1.25f);
+        float c = MathHelper.Lerp(0.2f, 1, 1f - Normalize(weather.Temperature, TEMP_MIN, TEMP_MAX));
+        float m = MathHelper.Lerp(0.2f, 1, Normalize(weather.Pressure, PRES_MIN, PRES_MAX));
+        float y = MathHelper.Lerp(0.2f, 1, Normalize(weather.Humidity, HUM_MIN, HUM_MAX));
+        float k = MathHelper.Lerp(0.2f, 0.7f, Normalize(weather.WindSpeed, WIND_MIN, WIND_MAX) / 1.25f);
 
         // https://www.rapidtables.com/convert/color/cmyk-to-rgb.html
         float r = (1f - c) * (1f - k);
@@ -87,7 +87,8 @@ public static class WeatherColor
         return new Color(r, g, b, 1f);
     }
 
-    public static void SetRanges(List<WeatherStation> stations, bool ignoreHugeWind = true)
+    // No longer needed as these are directly read, so no min/max can be generated
+    /*public static void SetRanges(List<WeatherStation> stations, bool ignoreHugeWind = true)
     {
         float tempMin = float.PositiveInfinity, tempMax = float.NegativeInfinity;
         float presMin = float.PositiveInfinity, presMax = float.NegativeInfinity;
@@ -110,7 +111,7 @@ public static class WeatherColor
 
             foreach (WindData wd in s.WindData)
             {
-                float v = wd.windspeed;
+                float v = wd.WindSpeed;
 
                 if (ignoreHugeWind && v >= 60000f) continue;
 
@@ -126,7 +127,7 @@ public static class WeatherColor
 
         System.Console.WriteLine("==Min and Max Color Values==");
         System.Console.WriteLine($"Temperature: {TEMP_MIN}-{TEMP_MAX}\nPressure: {PRES_MIN}-{PRES_MAX}\nHumidity: {HUM_MIN}-{HUM_MAX}\nWindSpeed: {WIND_MIN}-{WIND_MAX}");
-    }
+    }*/
 
 
 }

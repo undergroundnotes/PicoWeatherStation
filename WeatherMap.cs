@@ -93,7 +93,7 @@ public class WeatherMap
         StationData dataA = stationA.GetStationDataAtTime(simulationTime);
         StationData dataB = stationB.GetStationDataAtTime(simulationTime);
 
-        float localPressureRange = MathF.Abs(dataB.pressure - dataA.pressure);
+        float localPressureRange = MathF.Abs(dataB.Pressure - dataA.Pressure);
 
         int isobarCount = localPressureRange >= _isobarPressureStep ? (int)(localPressureRange / _isobarPressureStep) : 0;
 
@@ -134,13 +134,13 @@ public class WeatherMap
     private StationData LerpStationData(float reading, StationData a, StationData b, float t)
     {
         return new StationData(
-            weatherTimeReading: reading,// This makes 0 sense for what it is.
-            WindTimeReading: reading,
-            temperature: MathHelper.Lerp(a.temperature, b.temperature, t),
-            pressure: MathHelper.Lerp(a.pressure, b.pressure, t),
-            humidity: MathHelper.Lerp(a.humidity, b.humidity, t),
-            windSpeed: MathHelper.Lerp(a.windSpeed, b.windSpeed, t)
+            Time: reading,// This makes 0 sense for what it is.
+            Temperature: MathHelper.Lerp(a.Temperature, b.Temperature, t),
+            Pressure: MathHelper.Lerp(a.Pressure, b.Pressure, t),
+            Humidity: MathHelper.Lerp(a.Humidity, b.Humidity, t),
+            WindSpeed: MathHelper.Lerp(a.WindSpeed, b.WindSpeed, t)
         );
+        
     }
 
     private float ProjectOnLine(Vector2 a, Vector2 b, Vector2 p)
