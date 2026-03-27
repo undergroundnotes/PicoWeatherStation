@@ -87,6 +87,21 @@ public static class WeatherColor
         return new Color(r, g, b, 1f);
     }
 
+    public static void SetValues(WeatherColorSettings settings)
+    {
+        TEMP_MIN = (float)settings.TemperatureMin; 
+        TEMP_MAX = (float)settings.TemperatureMax;
+        
+        PRES_MIN = (float)settings.PressureMin; 
+        PRES_MAX = (float)settings.PressureMax;
+        
+        HUM_MIN = (float)settings.HumidityMin; 
+        HUM_MAX = (float)settings.HumidityMax;
+        
+        WIND_MIN = (float)settings.WindMin; 
+        WIND_MAX = (float)settings.WindMax;
+    }
+
     // No longer needed as these are directly read, so no min/max can be generated
     /*public static void SetRanges(List<WeatherStation> stations, bool ignoreHugeWind = true)
     {

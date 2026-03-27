@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using DataVisualizer.ServerReading;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -38,11 +39,21 @@ public class LiveGame : Game
     private const float ISO_BAR_STEP = 0.05f;
     private float _calculatedIsoStep;
 
-    public LiveGame()
+    private IReadOnlyList<ServerJson> _dataBank;
+    private int readingCount = 0;
+
+    public LiveGame(List<ServerJson> dataBank, WeatherColorSettings weatherColor)
     {
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
+        
+        // THIS LIST/DATA NEEDS TO BE A REFERENCE.
+        // Same copy which is loaded async
+        _dataBank = dataBank;
+        readingCount = 0;
+
+        WeatherColor.SetValues(weatherColor);
     }
 
     protected override void Initialize()
@@ -75,25 +86,34 @@ public class LiveGame : Game
     {
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
-
+        
         _currentMouseState = Mouse.GetState();
-
-
         float deltaSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
         accumulatedTime += deltaSeconds;
 
-        if (accumulatedTime >= timeIncrementInterval)
+        // # 1 Update readings
+        if(_dataBank.Count != readingCount)
         {
-            currentTimeInSeconds += simulationStep;
-            accumulatedTime -= timeIncrementInterval;
+            // There has been new readings
+            // Get new data
+            // Convert data
+            
+            
+            // Render data if valid
+            if (accumulatedTime >= timeIncrementInterval)
+            {
+                currentTimeInSeconds += simulationStep;
+                accumulatedTime -= timeIncrementInterval;
+            }
+
+            if (currentTimeInSeconds != _lastRenderedTime)
+            {
+                weatherMap.RegenerateFieldTexture(currentTimeInSeconds, weatherStations[0], weatherStations[1]);
+                _lastRenderedTime = currentTimeInSeconds;
+            }
         }
 
-        if (currentTimeInSeconds != _lastRenderedTime)
-        {
-            weatherMap.RegenerateFieldTexture(currentTimeInSeconds, weatherStations[0], weatherStations[1]);
-            _lastRenderedTime = currentTimeInSeconds;
-        }
-
+        // Mouse Logic is eternal
         WeatherStation hoveredStation = weatherMap.GetStationMouseOverlap(_currentMouseState);
         if (hoveredStation != null)
         {
@@ -102,7 +122,6 @@ public class LiveGame : Game
         else
         {
             var blended = weatherMap.GetInterpolatedDataAtMouse(_currentMouseState, currentTimeInSeconds, weatherStations[0], weatherStations[1]);
-
             infoLabel = blended.HasValue ? blended.Value.ToString() : "";
         }
 
