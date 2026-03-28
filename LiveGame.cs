@@ -39,6 +39,12 @@ public class LiveGame : Game
         _pendingReadings = pendingReadings;
 
         WeatherColor.SetValues(weatherColor);
+
+        weatherStations =
+        [
+            new WeatherStation("station_a", Vector2.One),
+            new WeatherStation("station_b", Vector2.One),
+        ];
     }
 
     protected override void Initialize()
@@ -83,7 +89,12 @@ public class LiveGame : Game
             StationData data = ConvertJson(json);
 
             // TODO: update station with data
-            WeatherStation targetStation = weatherStations[0];
+            WeatherStation targetStation = json.DeviceId switch
+            {
+                "station_a" => weatherStations[0],
+                "station_b" => weatherStations[1],
+                _ => throw new Exception($"Station '{json.DeviceId}' does not exist!"),
+            };
             targetStation.StationDatas.Add(data);
 
             _totalReadingsProcessed++;
@@ -93,7 +104,7 @@ public class LiveGame : Game
         // Render data if valid
         if (_mapDirty && weatherStations.Count >= 2)
         {
-            weatherMap.RegenerateFieldTexture(_currentQueryTime, weatherStations[0], weatherStations[1]);
+            weatherMap.RegenerateFieldTexture(weatherStations[0], weatherStations[1]);
 
             _mapDirty = false;
         }
@@ -102,11 +113,11 @@ public class LiveGame : Game
         WeatherStation hoveredStation = weatherMap.GetStationMouseOverlap(_currentMouseState);
         if (hoveredStation != null)
         {
-            infoLabel = hoveredStation.DescribeAtTime(_currentQueryTime);
+            infoLabel = hoveredStation.DescribeLatest();
         }
         else if (weatherStations.Count >= 2)
         {
-            var blended = weatherMap.GetInterpolatedDataAtMouse(_currentMouseState, _currentQueryTime, weatherStations[0], weatherStations[1]);
+            var blended = weatherMap.GetInterpolatedDataAtMouse(_currentMouseState, weatherStations[0], weatherStations[1]);
             infoLabel = blended.HasValue ? blended.Value.ToString().Replace("Time", "INTERPOLATED-TIME") : "";
         }
         else
@@ -123,7 +134,7 @@ public class LiveGame : Game
 
         _spriteBatch.Begin();
 
-        weatherMap.Draw(_spriteBatch, _currentQueryTime);
+        weatherMap.Draw(_spriteBatch);
 
         _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.White);
 

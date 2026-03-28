@@ -52,7 +52,7 @@ public class WeatherMap
         return null;
     }
 
-    public StationData? GetInterpolatedDataAtMouse(MouseState mouse, DateTime time, WeatherStation a, WeatherStation b)
+    public StationData? GetInterpolatedDataAtMouse(MouseState mouse, WeatherStation a, WeatherStation b)
     {
         if (!DestRect.Contains(mouse.X, mouse.Y))
             return null;
@@ -64,36 +64,51 @@ public class WeatherMap
 
         float linePos = ProjectOnLine(A, B, p);
 
-        StationData stationDataA = a.GetStationDataAtTime(time);
-        StationData stationDataB = b.GetStationDataAtTime(time);
+        StationData? stationDataA = a.GetStationData();
+        StationData? stationDataB = b.GetStationData();
 
-        return LerpStationData(time, stationDataA, stationDataB, linePos);
+        if (!stationDataA.HasValue || !stationDataB.HasValue)
+        {
+            Console.WriteLine("Cannot interpolate with an empty station");
+            return null;
+        }
+
+        return LerpStationData(stationDataA.Value, stationDataB.Value, linePos);
     }
 
-    public void Draw(SpriteBatch sb, DateTime time)
+    public void Draw(SpriteBatch sb)
     {
         sb.Draw(_fieldTex, DestRect, Color.White);
 
         foreach (WeatherStation s in stations)
         {
+            StationData? data = s.GetStationData();
+            if (!data.HasValue) continue;
+
             Vector2 staionRenderPosition = NormalizedToScreen(s.NormalizedPosition);
 
-            Color stationColor = WeatherColor.ToColor(s.GetStationDataAtTime(time));
+            Color stationColor = WeatherColor.ToColor(data.Value);
 
             sb.Draw(_stationTex, staionRenderPosition, null, stationColor, 0f, new Vector2(_stationRadius), 1f, SpriteEffects.None, 0f);
         }
     }
 
-    public void RegenerateFieldTexture(DateTime time, WeatherStation stationA, WeatherStation stationB)
+    public void RegenerateFieldTexture(WeatherStation stationA, WeatherStation stationB)
     {
         Vector2 A = NormalizedToScreen(stationA.NormalizedPosition);
         Vector2 B = NormalizedToScreen(stationB.NormalizedPosition);
         float distance = Vector2.Distance(A, B);
 
-        StationData dataA = stationA.GetStationDataAtTime(time);
-        StationData dataB = stationB.GetStationDataAtTime(time);
+        StationData? dataA = stationA.GetStationData();
+        StationData? dataB = stationB.GetStationData();
 
-        float localPressureRange = MathF.Abs(dataB.Pressure - dataA.Pressure);
+        if (!dataA.HasValue || !dataB.HasValue)
+        {
+            Console.WriteLine("Cannot generate field with an empty station");
+            return;
+        }
+
+        float localPressureRange = MathF.Abs(dataB.Value.Pressure - dataA.Value.Pressure);
 
         int isobarCount = localPressureRange >= _isobarPressureStep ? (int)(localPressureRange / _isobarPressureStep) : 0;
 
@@ -107,7 +122,7 @@ public class WeatherMap
 
                 float projection = ProjectOnLine(A, B, p);
 
-                StationData blended = LerpStationData(time, dataA, dataB, projection);
+                StationData blended = LerpStationData(dataA.Value, dataB.Value, projection);
                 Color pixelColor = WeatherColor.ToColor(blended);
 
                 if (isobarCount > 0)
@@ -131,14 +146,14 @@ public class WeatherMap
         _fieldTex.SetData(_fieldPixels);
     }
 
-    private StationData LerpStationData(DateTime time, StationData a, StationData b, float t)
+    private StationData LerpStationData(StationData a, StationData b, float completion)
     {
         return new StationData(
-            Time: time,// This makes 0 sense for what it is.
-            Temperature: MathHelper.Lerp(a.Temperature, b.Temperature, t),
-            Pressure: MathHelper.Lerp(a.Pressure, b.Pressure, t),
-            Humidity: MathHelper.Lerp(a.Humidity, b.Humidity, t),
-            WindSpeed: MathHelper.Lerp(a.WindSpeed, b.WindSpeed, t)
+            Time: a.Time,// This makes 0 sense for what it is.
+            Temperature: MathHelper.Lerp(a.Temperature, b.Temperature, completion),
+            Pressure: MathHelper.Lerp(a.Pressure, b.Pressure, completion),
+            Humidity: MathHelper.Lerp(a.Humidity, b.Humidity, completion),
+            WindSpeed: MathHelper.Lerp(a.WindSpeed, b.WindSpeed, completion)
         );
 
     }

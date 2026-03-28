@@ -1,12 +1,14 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using DataVisualizer;
 using DataVisualizer.ServerReading;
+using DataVisualizerLive.ServerReading;
 
 // Load Visualizer Settings
-string settingsFilePath = "";
+string settingsFilePath = Path.Combine(AppContext.BaseDirectory, "VisualizerSettings.json");
 using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(settingsFilePath));
 JsonElement root = doc.RootElement;
 
@@ -27,7 +29,8 @@ WeatherColorSettings colorSettings = new WeatherColorSettings(
 ConcurrentQueue<ServerJson> pendingReadings = new();
 
 ServerController serverController = new ServerController(
-    new ServerReader(serverUrl),
+    //new ServerReader(serverUrl),
+    new MockReader(),
     pendingReadings);
 
 await serverController.ConnectAsync();
