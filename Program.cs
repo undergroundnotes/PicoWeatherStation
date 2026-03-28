@@ -1,13 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using DataVisualizer;
 using DataVisualizer.ServerReading;
 
 // Load Visualizer Settings
-string fileJson = "aashjasdjas";
-
-using JsonDocument doc = JsonDocument.Parse(fileJson);
+string settingsFilePath = "";
+using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(settingsFilePath));
 JsonElement root = doc.RootElement;
+
 string serverUrl = root.GetProperty("url").GetString();
 
 WeatherColorSettings colorSettings = new WeatherColorSettings(
@@ -22,11 +24,14 @@ WeatherColorSettings colorSettings = new WeatherColorSettings(
 );
 
 // Setup
-List<ServerJson> dataBank = new List<ServerJson>();
+ConcurrentQueue<ServerJson> pendingReadings = new();
 
 ServerController serverController = new ServerController(
     new ServerReader(serverUrl),
-    dataBank);
+    pendingReadings);
 
-using var game = new LiveGame(dataBank, colorSettings);
+await serverController.ConnectAsync();
+serverController.Start();
+
+using var game = new LiveGame(pendingReadings, colorSettings);
 game.Run();

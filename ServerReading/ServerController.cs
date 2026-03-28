@@ -1,49 +1,57 @@
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace DataVisualizer.ServerReading;
 
+// maybe a way to get a frame of the list? This would avoid race cons. when doing ops.
+
 public class ServerController
 {
     private IServerReader _reader;
-    private List<ServerJson> _dataBank;
+    private readonly ConcurrentQueue<ServerJson> _pendingReadings;
+    private CancellationTokenSource? _cts;
 
-    public ServerController(IServerReader reader, List<ServerJson> dataBank)
+    public ServerController(IServerReader reader, ConcurrentQueue<ServerJson> pendingReadings)
     {
         _reader = reader;
-        _dataBank = dataBank;
+        _pendingReadings = pendingReadings;
     }
 
-    public void Connect()
+    public async Task ConnectAsync()
     {
-        _reader.Initialize();
+        await _reader.InitializeAsync();
     }
 
-    // This function should be multi Threaded
-    public async Task Run()
+    public void Start()
     {
-        // I cannot use a seperate thread. Well, I can. Regardless, EVERYTHING needs to be done through async
+        _cts = new CancellationTokenSource();
+
+        Task.Run(() => PollDataAsync(_cts.Token));
     }
 
-    private async Task PollDataAsync()
+    public void Stop()
     {
-        while (true)
+        _cts?.Cancel();
+    }
+
+    private async Task PollDataAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
         {
-            ServerJson json = await _reader.ReadServer();
-            _dataBank.Add(json);
-        }
-    }
+            try
+            {
+                ServerJson json = await _reader.ReadServer();
 
-    // This function should be somewhere else. Its not needed here
-    private StationData ConvertJson(ServerJson json)
-    {
-        return new StationData(
-            Time: 0, // TODO: change to date time
-            Temperature: json.Temperature,
-            Humidity: json.Humidity,
-            WindSpeed: json.Wind,
-            Pressure: json.Pressure
-        );
+                _pendingReadings.Enqueue(json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Server error: " + ex.Message);
+                await Task.Delay(1000, token);
+            }
+        }
     }
 }

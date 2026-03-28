@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using DataVisualizer.ServerReading;
@@ -11,47 +12,31 @@ namespace DataVisualizer;
 public class LiveGame : Game
 {
     private GraphicsDeviceManager _graphics;
-
     private MouseState _currentMouseState;
     private SpriteBatch _spriteBatch;
-
     private SpriteFont font;
 
-    private string weatherDataDirectory = "WeatherData"; // When changing this, make sure to update the csproj
-    // For now I will assert that the wind data is the same file with _wind at the end
-    private string delimiter = "\t";
-
     List<WeatherStation> weatherStations;
-
     private WeatherMap weatherMap;
 
     private string infoLabel = "";
 
-    private float currentTimeInSeconds = 0;
-    private float accumulatedTime = 0f;
-    private float timeIncrementInterval = 0.5f;
-    private float simulationStep = 0.5f;// This needs to be a multiple of the data step inc
-    // This implies another assertion, that all datasets have the same step size
-    // This doesnt need to be a multiple of the data step inc, if we adjust the rounding formula
-    // todo
-    private float _lastRenderedTime = float.NegativeInfinity;
-
     private const float ISO_BAR_STEP = 0.05f;
     private float _calculatedIsoStep;
 
-    private IReadOnlyList<ServerJson> _dataBank;
-    private int readingCount = 0;
+    private readonly ConcurrentQueue<ServerJson> _pendingReadings;
+    private bool _mapDirty = false;
+    private int _totalReadingsProcessed = 0;
 
-    public LiveGame(List<ServerJson> dataBank, WeatherColorSettings weatherColor)
+    private DateTime _currentQueryTime;
+
+    public LiveGame(ConcurrentQueue<ServerJson> pendingReadings, WeatherColorSettings weatherColor)
     {
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
-        
-        // THIS LIST/DATA NEEDS TO BE A REFERENCE.
-        // Same copy which is loaded async
-        _dataBank = dataBank;
-        readingCount = 0;
+
+        _pendingReadings = pendingReadings;
 
         WeatherColor.SetValues(weatherColor);
     }
@@ -62,7 +47,10 @@ public class LiveGame : Game
 
         _calculatedIsoStep = (WeatherColor.PRES_MAX - WeatherColor.PRES_MIN) * ISO_BAR_STEP;
 
-        // n =  
+        // n =  2
+        // TODO: CREATE WEATHER STATIONS MANUALLY. Since I am not doing it automaticallyt
+        weatherStations[0].NormalizedPosition = new Vector2(0.25f, 0.50f);
+        weatherStations[1].NormalizedPosition = new Vector2(0.85f, 0.50f);
 
         weatherMap = new WeatherMap(
             GraphicsDevice,
@@ -72,8 +60,7 @@ public class LiveGame : Game
             stationRadius: 16
         );
 
-        weatherMap.RegenerateFieldTexture(currentTimeInSeconds, weatherStations[0], weatherStations[1]);
-        _lastRenderedTime = currentTimeInSeconds;
+        //weatherMap.RegenerateFieldTexture(currentTimeInSeconds, weatherStations[0], weatherStations[1]);
     }
 
     protected override void LoadContent()
@@ -86,43 +73,45 @@ public class LiveGame : Game
     {
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
-        
+
         _currentMouseState = Mouse.GetState();
-        float deltaSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
-        accumulatedTime += deltaSeconds;
+        _currentQueryTime = DateTime.UtcNow;
 
-        // # 1 Update readings
-        if(_dataBank.Count != readingCount)
+
+        while (_pendingReadings.TryDequeue(out ServerJson json))
         {
-            // There has been new readings
-            // Get new data
-            // Convert data
-            
-            
-            // Render data if valid
-            if (accumulatedTime >= timeIncrementInterval)
-            {
-                currentTimeInSeconds += simulationStep;
-                accumulatedTime -= timeIncrementInterval;
-            }
+            StationData data = ConvertJson(json);
 
-            if (currentTimeInSeconds != _lastRenderedTime)
-            {
-                weatherMap.RegenerateFieldTexture(currentTimeInSeconds, weatherStations[0], weatherStations[1]);
-                _lastRenderedTime = currentTimeInSeconds;
-            }
+            // TODO: update station with data
+            WeatherStation targetStation = weatherStations[0];
+            targetStation.StationDatas.Add(data);
+
+            _totalReadingsProcessed++;
+            _mapDirty = true;
+        }
+
+        // Render data if valid
+        if (_mapDirty && weatherStations.Count >= 2)
+        {
+            weatherMap.RegenerateFieldTexture(_currentQueryTime, weatherStations[0], weatherStations[1]);
+
+            _mapDirty = false;
         }
 
         // Mouse Logic is eternal
         WeatherStation hoveredStation = weatherMap.GetStationMouseOverlap(_currentMouseState);
         if (hoveredStation != null)
         {
-            infoLabel = hoveredStation.DescribeAtTime(currentTimeInSeconds);
+            infoLabel = hoveredStation.DescribeAtTime(_currentQueryTime);
+        }
+        else if (weatherStations.Count >= 2)
+        {
+            var blended = weatherMap.GetInterpolatedDataAtMouse(_currentMouseState, _currentQueryTime, weatherStations[0], weatherStations[1]);
+            infoLabel = blended.HasValue ? blended.Value.ToString().Replace("Time", "INTERPOLATED-TIME") : "";
         }
         else
         {
-            var blended = weatherMap.GetInterpolatedDataAtMouse(_currentMouseState, currentTimeInSeconds, weatherStations[0], weatherStations[1]);
-            infoLabel = blended.HasValue ? blended.Value.ToString() : "";
+            infoLabel = "Waiting for weather station data...";
         }
 
         base.Update(gameTime);
@@ -134,18 +123,29 @@ public class LiveGame : Game
 
         _spriteBatch.Begin();
 
-        weatherMap.Draw(_spriteBatch, currentTimeInSeconds);
+        weatherMap.Draw(_spriteBatch, _currentQueryTime);
 
         _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.White);
 
 
         _spriteBatch.DrawString(font,
-        "CurrentTimeInSeconds: " + Math.Round(currentTimeInSeconds, 3) + $"\nIsobar step ({ISO_BAR_STEP * 100}%): {_calculatedIsoStep}",
+        $"CurrentTimeInSeconds: {_currentQueryTime:yyyy-MM-dd HH:mm:ss}\nIsobar step ({ISO_BAR_STEP * 100}%): {_calculatedIsoStep}",
         new Vector2(8, 154), Color.White);
 
         _spriteBatch.End();
 
 
         base.Draw(gameTime);
+    }
+
+    private StationData ConvertJson(ServerJson json)
+    {
+        return new StationData(
+            Time: json.Time,
+            Temperature: json.Temperature,
+            Humidity: json.Humidity,
+            WindSpeed: json.Wind,
+            Pressure: json.Pressure
+        );
     }
 }

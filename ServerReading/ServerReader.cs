@@ -20,26 +20,35 @@ public class ServerReader : IServerReader
         _url = url;
     }
 
-    public async void Initialize()
+    public async Task InitializeAsync()
     {
         var http = new HttpClient();
         var request = new HttpRequestMessage(HttpMethod.Get, _url);
         request.Headers.Add("Accept", "text/event-stream");
 
         var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+        response.EnsureSuccessStatusCode();
         var stream = await response.Content.ReadAsStreamAsync();
         _reader = new StreamReader(stream);
     }
 
     public async Task<ServerJson> ReadServer()
     {
-        var line = await _reader.ReadLineAsync();
-        if(line == null) throw new Exception("Server Reading was null!!!");
+        if (_reader == null) throw new InvalidOperationException("ServerReader not initialized.");
 
-        ServerJson? json = JsonSerializer.Deserialize<ServerJson>(line);
+        while (true)
+        {
+            string line = await _reader.ReadLineAsync() ?? throw new Exception("Server Reading was null!!!");
 
-        if (!json.HasValue) throw new Exception("Json conversion was null!!!");
+            if (!line.StartsWith("data:")) continue;
 
-        return json.Value;
+            string jsonText = line.Substring("data:".Length).Trim();
+
+            ServerJson? json = JsonSerializer.Deserialize<ServerJson>(jsonText);
+
+            if (!json.HasValue) throw new Exception("Json conversion was null!!!");
+
+            return json.Value;
+        }
     }
 }

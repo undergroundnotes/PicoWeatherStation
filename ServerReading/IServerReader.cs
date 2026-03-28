@@ -6,5 +6,5 @@ public interface IServerReader
 {
     Task<ServerJson> ReadServer();
 
-    void Initialize();
+    Task InitializeAsync();
 }

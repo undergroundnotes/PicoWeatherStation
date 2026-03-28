@@ -17,22 +17,26 @@ public class WeatherStation
         Label = label;
         NormalizedPosition = position;
         StationDatas = stationDatas;
-        
+
     }
-    public string DescribeAtTime(float simulationTime)
+    public string DescribeAtTime(DateTime simulationTime)
     {
         return $"{Label}\n{GetStationDataAtTime(simulationTime).ToString()}";
     }
 
-    public StationData GetStationDataAtTime(float simulationTime)
+    public StationData GetStationDataAtTime(DateTime time)
     {
-        // Get closest data
-        return StationDatas[ClosestIndexByTime(StationDatas, simulationTime, x => x.Time)];
+        return StationDatas[
+            ClosestIndexByTime(
+                StationDatas,
+                time,
+                x => x.Time)
+        ];
     }
 
     // BST, where givenTime is the query, objTime is the function to get the time from the struct/obj
     // We only care about the fences because we are searching for floats
-    private int ClosestIndexByTime<T>(List<T> list, float givenTime, Func<T, float> objTime)
+    private int ClosestIndexByTime<T>(List<T> list, DateTime givenTime, Func<T, DateTime> objTime)
     {
         if (list.Count == 1) return 0;
         if (givenTime <= objTime(list[0])) return 0;
@@ -43,14 +47,14 @@ public class WeatherStation
         while (low + 1 < high)
         {
             int mid = low + ((high - low) / 2);
-            float time = objTime(list[mid]);
+            DateTime time = objTime(list[mid]);
 
             if (time < givenTime) low = mid;
             else high = mid;
         }
 
-        float floor = objTime(list[low]);
-        float ceiling = objTime(list[high]);
+        DateTime floor = objTime(list[low]);
+        DateTime ceiling = objTime(list[high]);
 
         return (givenTime - floor <= ceiling - givenTime) ? low : high;
     }

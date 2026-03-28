@@ -25,3 +25,9 @@ What does this list look like?????
 probably 2
 
 There is not internal step
+
+---
+
+switch to using date time, instead of float time.
+
+Potentially remove time setter from everything. This is either removing time completely, or switching to datetime

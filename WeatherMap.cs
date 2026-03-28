@@ -52,7 +52,7 @@ public class WeatherMap
         return null;
     }
 
-    public StationData? GetInterpolatedDataAtMouse(MouseState mouse, float simulationTime, WeatherStation a, WeatherStation b)
+    public StationData? GetInterpolatedDataAtMouse(MouseState mouse, DateTime time, WeatherStation a, WeatherStation b)
     {
         if (!DestRect.Contains(mouse.X, mouse.Y))
             return null;
@@ -64,13 +64,13 @@ public class WeatherMap
 
         float linePos = ProjectOnLine(A, B, p);
 
-        StationData stationDataA = a.GetStationDataAtTime(simulationTime);
-        StationData stationDataB = b.GetStationDataAtTime(simulationTime);
+        StationData stationDataA = a.GetStationDataAtTime(time);
+        StationData stationDataB = b.GetStationDataAtTime(time);
 
-        return LerpStationData(simulationTime, stationDataA, stationDataB, linePos);
+        return LerpStationData(time, stationDataA, stationDataB, linePos);
     }
 
-    public void Draw(SpriteBatch sb, float simulationTime)
+    public void Draw(SpriteBatch sb, DateTime time)
     {
         sb.Draw(_fieldTex, DestRect, Color.White);
 
@@ -78,20 +78,20 @@ public class WeatherMap
         {
             Vector2 staionRenderPosition = NormalizedToScreen(s.NormalizedPosition);
 
-            Color stationColor = WeatherColor.ToColor(s.GetStationDataAtTime(simulationTime));
+            Color stationColor = WeatherColor.ToColor(s.GetStationDataAtTime(time));
 
             sb.Draw(_stationTex, staionRenderPosition, null, stationColor, 0f, new Vector2(_stationRadius), 1f, SpriteEffects.None, 0f);
         }
     }
 
-    public void RegenerateFieldTexture(float simulationTime, WeatherStation stationA, WeatherStation stationB)
+    public void RegenerateFieldTexture(DateTime time, WeatherStation stationA, WeatherStation stationB)
     {
         Vector2 A = NormalizedToScreen(stationA.NormalizedPosition);
         Vector2 B = NormalizedToScreen(stationB.NormalizedPosition);
         float distance = Vector2.Distance(A, B);
 
-        StationData dataA = stationA.GetStationDataAtTime(simulationTime);
-        StationData dataB = stationB.GetStationDataAtTime(simulationTime);
+        StationData dataA = stationA.GetStationDataAtTime(time);
+        StationData dataB = stationB.GetStationDataAtTime(time);
 
         float localPressureRange = MathF.Abs(dataB.Pressure - dataA.Pressure);
 
@@ -107,7 +107,7 @@ public class WeatherMap
 
                 float projection = ProjectOnLine(A, B, p);
 
-                StationData blended = LerpStationData(simulationTime, dataA, dataB, projection);
+                StationData blended = LerpStationData(time, dataA, dataB, projection);
                 Color pixelColor = WeatherColor.ToColor(blended);
 
                 if (isobarCount > 0)
@@ -131,16 +131,16 @@ public class WeatherMap
         _fieldTex.SetData(_fieldPixels);
     }
 
-    private StationData LerpStationData(float reading, StationData a, StationData b, float t)
+    private StationData LerpStationData(DateTime time, StationData a, StationData b, float t)
     {
         return new StationData(
-            Time: reading,// This makes 0 sense for what it is.
+            Time: time,// This makes 0 sense for what it is.
             Temperature: MathHelper.Lerp(a.Temperature, b.Temperature, t),
             Pressure: MathHelper.Lerp(a.Pressure, b.Pressure, t),
             Humidity: MathHelper.Lerp(a.Humidity, b.Humidity, t),
             WindSpeed: MathHelper.Lerp(a.WindSpeed, b.WindSpeed, t)
         );
-        
+
     }
 
     private float ProjectOnLine(Vector2 a, Vector2 b, Vector2 p)
