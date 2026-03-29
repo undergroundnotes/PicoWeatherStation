@@ -27,7 +27,7 @@ public class MockReader : IServerReader
     private int _nextStationIndex = 0;
     private int _nextSerial = 1;
 
-    public MockReader(int seed = 6969, int stationCount = 4)
+    public MockReader(int seed = 6969, int stationCount = 5)
     {
         _random = new Random(seed);
         _stations = new List<MockStationState>();

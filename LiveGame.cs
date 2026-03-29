@@ -21,6 +21,8 @@ public class LiveGame : Game
 
     private Texture2D _stationTexture;
 
+    private Texture2D _mapTexture;
+
 
     private string infoLabel = "";
 
@@ -77,6 +79,7 @@ public class LiveGame : Game
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         font = Content.Load<SpriteFont>("font");
         _stationTexture = Content.Load<Texture2D>("picoW");
+        _mapTexture = Content.Load<Texture2D>("map");
     }
 
     protected override void Update(GameTime gameTime)
@@ -142,7 +145,9 @@ public class LiveGame : Game
 
         _spriteBatch.Begin();
 
-        weatherMap.Draw(_spriteBatch, weatherStations);
+        _spriteBatch.Draw(_mapTexture, new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), Color.White);
+
+        weatherMap.Draw(_spriteBatch, weatherStations, alpha: 0.75f);
 
         _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.White);
 

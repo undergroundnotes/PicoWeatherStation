@@ -59,9 +59,9 @@ public class WeatherMap
         return InterpolateIDW(p, stations);
     }
 
-    public void Draw(SpriteBatch spriteBatch, List<WeatherStation> stations)
+    public void Draw(SpriteBatch spriteBatch, List<WeatherStation> stations, float alpha = 1f)
     {
-        spriteBatch.Draw(_fieldTex, _destRect, Color.White);
+        spriteBatch.Draw(_fieldTex, _destRect, Color.White * alpha);
 
         foreach (WeatherStation station in stations)
         {

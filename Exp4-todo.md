@@ -41,8 +41,8 @@ todo:
 
 
 Beauty:
-- Bg image of winnipeg
-- green colors are potentially invisable
-- Station icon something other than a circle
-- something with wind
-- click and drag station locations?!?!
+- [x] Bg image of winnipeg
+- [ ] green colors are potentially invisable
+- [x] Station icon something other than a circle
+- [ ] something with wind
+- [ ] click and drag station locations?!?!
