@@ -1,23 +1,29 @@
-using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 
 namespace DataVisualizer;
 
+// Positions are fixed. THis keeps things sane
+// Calculations are now based off screenPos, however, normal pos is good for placing the stations
 public class WeatherStation
 {
     public string Label { get; set; }
-    public Vector2 NormalizedPosition { get; set; }
+    public Vector2 NormalizedPosition { get; }
 
-    // This is always ordered by time. NO! It is ordered by oldest to newest! Time is an illusion
     public readonly List<StationData> StationDatas;// Yes, this is a bad name. I dont care. This contains temp, pres, hum
+    public bool HasData => StationDatas.Count > 0;
 
-    public WeatherStation(string label, Vector2 normalPosition, List<StationData> stationDatas = null)
+
+    private Vector2 _screenPos = -Vector2.One;
+    public Vector2 ScreenPosition => _screenPos;
+
+    public WeatherStation(string label, Vector2 normalPosition, Rectangle screen, List<StationData> stationDatas = null)
     {
         Label = label;
         NormalizedPosition = normalPosition;
         StationDatas = stationDatas ?? new List<StationData>();
 
+        _screenPos = new Vector2(screen.X + (NormalizedPosition.X * screen.Width), screen.Y + (NormalizedPosition.Y * screen.Height));
     }
 
     public void AddReading(StationData data)
@@ -25,22 +31,22 @@ public class WeatherStation
         StationDatas.Add(data);
     }
 
-    public bool HasData()
-    {
-        return StationDatas.Count > 0;
-    }
-
     public StationData? GetLatestData()
     {
-        if (StationDatas.Count == 0)
+        if (!HasData)
             return null;
 
         return StationDatas[^1];
     }
 
+    public StationData? GetStationData()
+    {
+        return GetLatestData();
+    }
+
     public bool TryGetLatestData(out StationData data)
     {
-        if (!HasData())
+        if (!HasData)
         {
             data = default;
             return false;
@@ -57,45 +63,4 @@ public class WeatherStation
 
         return $"{Label}\n{data}";
     }
-
-    /*public StationData GetStationDataAtTime(DateTime time)
-    {
-        return StationDatas[
-            ClosestIndexByTime(
-                StationDatas,
-                time,
-                x => x.Time)
-        ];
-    }*/
-
-    public StationData? GetStationData()
-    {
-        // always return latest reading??? Since it is live
-        return GetLatestData();
-    }
-
-    // BST, where givenTime is the query, objTime is the function to get the time from the struct/obj
-    // We only care about the fences because we are searching for floats
-    /* private int ClosestIndexByTime<T>(List<T> list, DateTime givenTime, Func<T, DateTime> objTime)
-     {
-         if (list.Count == 1) return 0;
-         if (givenTime <= objTime(list[0])) return 0;
-         if (givenTime >= objTime(list[list.Count - 1])) return list.Count - 1;
-
-         int low = 0;
-         int high = list.Count - 1;
-         while (low + 1 < high)
-         {
-             int mid = low + ((high - low) / 2);
-             DateTime time = objTime(list[mid]);
-
-             if (time < givenTime) low = mid;
-             else high = mid;
-         }
-
-         DateTime floor = objTime(list[low]);
-         DateTime ceiling = objTime(list[high]);
-
-         return (givenTime - floor <= ceiling - givenTime) ? low : high;
-     }*/
 }

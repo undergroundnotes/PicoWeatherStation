@@ -1,15 +1,11 @@
 {
     "url": "ass",
-    
-    "temp-min": 0,
-    "temp-max": 1,
-    
-    "pres-min": 0,
-    "pres-max": 1,
-    
-    "hum-min": 0,
-    "hum-max": 1,
-    
-    "wind-min": 0,
-    "wind-max": 1
+    "temp-min": 10,
+    "temp-max": 30,
+    "pres-min": 990,
+    "pres-max": 1025,
+    "hum-min": 30,
+    "hum-max": 80,
+    "wind-min": 2,
+    "wind-max": 20
 }

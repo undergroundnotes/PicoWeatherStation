@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework;
 
 namespace DataVisualizer;
@@ -19,38 +19,32 @@ public static class WeatherColor
     public static float WIND_MIN { get; private set; } = 2000;
     public static float WIND_MAX { get; private set; } = 70000;
 
-    private static float Normalize(float value, float min, float max)
-    {
-        return Math.Clamp((value - min) / (max - min), 0f, 1f);
-    }
+    private static float _tempInvRange;
+    private static float _presInvRange;
+    private static float _humInvRange;
+    private static float _windInvRange;
 
     public static Color ToColor(StationData weather)
     {
-        //return FromCYMK(weather);
         return FromHSL(weather);
-        //return FromRGB(weather);
     }
 
-    private static Color FromRGB(StationData weather)
+    public static float WindScale(StationData station)
     {
-        float r = Normalize(weather.Temperature, TEMP_MIN, TEMP_MAX);
-        float g = Normalize(weather.Humidity, HUM_MIN, HUM_MAX);
-        float b = Normalize(weather.WindSpeed, WIND_MIN, WIND_MAX);
-
-        return new Color(r, g, b, 1f);
+        return 0.5f + (Normalize(station.WindSpeed, WIND_MIN, _windInvRange) * 2f);
     }
 
     private static Color FromHSL(StationData weather)
     {
-        float temp = Normalize(weather.Temperature, TEMP_MIN, TEMP_MAX);
-        float hum = Normalize(weather.Humidity, HUM_MIN, HUM_MAX);
-        float wind = Normalize(weather.WindSpeed, WIND_MIN, WIND_MAX);
+        float temp = Normalize(weather.Temperature, TEMP_MIN, _tempInvRange);
+        float hum = Normalize(weather.Humidity, HUM_MIN, _humInvRange);
+        //float wind = 0f;//Normalize(weather.WindSpeed, WIND_MIN, WIND_MAX);
         // https://www.rapidtables.com/convert/color/hsl-to-rgb.html
 
         // Normalization makes the values from 0 to
         float h = MathHelper.Lerp(230f, 0f, temp); // This puts it in 0..360, however starting from 220, which is blue 360 red
         float s = MathHelper.Lerp(0.25f, 1f, hum);
-        float l = MathHelper.Lerp(0.5f, 0.9f, wind);
+        float l = 0.5f;//MathHelper.Lerp(0.5f, 0.9f, wind);
 
 
         float c = (1f - MathF.Abs(2f * l - 1f)) * s;
@@ -72,77 +66,47 @@ public static class WeatherColor
         return new Color(r, g, b);
     }
 
-    private static Color FromCYMK(StationData weather)
-    {
-        float c = MathHelper.Lerp(0.2f, 1, 1f - Normalize(weather.Temperature, TEMP_MIN, TEMP_MAX));
-        float m = MathHelper.Lerp(0.2f, 1, Normalize(weather.Pressure, PRES_MIN, PRES_MAX));
-        float y = MathHelper.Lerp(0.2f, 1, Normalize(weather.Humidity, HUM_MIN, HUM_MAX));
-        float k = MathHelper.Lerp(0.2f, 0.7f, Normalize(weather.WindSpeed, WIND_MIN, WIND_MAX) / 1.25f);
-
-        // https://www.rapidtables.com/convert/color/cmyk-to-rgb.html
-        float r = (1f - c) * (1f - k);
-        float g = (1f - m) * (1f - k);
-        float b = (1f - y) * (1f - k);
-
-        return new Color(r, g, b, 1f);
-    }
-
     public static void SetValues(WeatherColorSettings settings)
     {
-        TEMP_MIN = (float)settings.TemperatureMin; 
+        TEMP_MIN = (float)settings.TemperatureMin;
         TEMP_MAX = (float)settings.TemperatureMax;
-        
-        PRES_MIN = (float)settings.PressureMin; 
+
+        PRES_MIN = (float)settings.PressureMin;
         PRES_MAX = (float)settings.PressureMax;
-        
-        HUM_MIN = (float)settings.HumidityMin; 
+
+        HUM_MIN = (float)settings.HumidityMin;
         HUM_MAX = (float)settings.HumidityMax;
-        
-        WIND_MIN = (float)settings.WindMin; 
+
+        WIND_MIN = (float)settings.WindMin;
         WIND_MAX = (float)settings.WindMax;
+
+        _tempInvRange = CalculateInvRange(TEMP_MIN, TEMP_MAX);
+        _presInvRange = CalculateInvRange(PRES_MIN, PRES_MAX);
+        _humInvRange = CalculateInvRange(HUM_MIN, HUM_MAX);
+        _windInvRange = CalculateInvRange(WIND_MIN, WIND_MAX);
     }
 
-    // No longer needed as these are directly read, so no min/max can be generated
-    /*public static void SetRanges(List<WeatherStation> stations, bool ignoreHugeWind = true)
+
+    // ----
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float Normalize(float value, float min, float invRange)
     {
-        float tempMin = float.PositiveInfinity, tempMax = float.NegativeInfinity;
-        float presMin = float.PositiveInfinity, presMax = float.NegativeInfinity;
-        float humMin = float.PositiveInfinity, humMax = float.NegativeInfinity;
-        float windMin = float.PositiveInfinity, windMax = float.NegativeInfinity;
+        float normalized = (value - min) * invRange;
 
-        foreach (var s in stations)
-        {
-            foreach (WeatherData weather in s.WeatherData)
-            {
-                if (weather.temperature < tempMin) tempMin = weather.temperature;
-                if (weather.temperature > tempMax) tempMax = weather.temperature;
+        if (normalized < 0f)
+            return 0f;
 
-                if (weather.pressure < presMin) presMin = weather.pressure;
-                if (weather.pressure > presMax) presMax = weather.pressure;
+        if (normalized > 1f)
+            return 1f;
 
-                if (weather.humidity < humMin) humMin = weather.humidity;
-                if (weather.humidity > humMax) humMax = weather.humidity;
-            }
+        return normalized;
+    }
 
-            foreach (WindData wd in s.WindData)
-            {
-                float v = wd.WindSpeed;
-
-                if (ignoreHugeWind && v >= 60000f) continue;
-
-                if (v < windMin) windMin = v;
-                if (v > windMax) windMax = v;
-            }
-        }
-
-        TEMP_MIN = tempMin; TEMP_MAX = tempMax;
-        PRES_MIN = presMin; PRES_MAX = presMax;
-        HUM_MIN = humMin; HUM_MAX = humMax;
-        WIND_MIN = windMin; WIND_MAX = windMax;
-
-        System.Console.WriteLine("==Min and Max Color Values==");
-        System.Console.WriteLine($"Temperature: {TEMP_MIN}-{TEMP_MAX}\nPressure: {PRES_MIN}-{PRES_MAX}\nHumidity: {HUM_MIN}-{HUM_MAX}\nWindSpeed: {WIND_MIN}-{WIND_MAX}");
-    }*/
-
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float CalculateInvRange(float min, float max)
+    {
+        float range = max - min;
+        return range > 0f ? 1f / range : 0f;
+    }
 }

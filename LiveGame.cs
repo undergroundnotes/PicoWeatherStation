@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using DataVisualizer.ServerReading;
+using DataVisualizerLive;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -21,14 +21,14 @@ public class LiveGame : Game
 
     private string infoLabel = "";
 
-    private const float ISO_BAR_STEP = 0.05f;
+    private const float ISO_BAR_STEP = 0.15f;
     private float _calculatedIsoStep;
 
     private readonly ConcurrentQueue<ServerJson> _pendingReadings;
     private bool _mapDirty = false;
     private int _totalReadingsProcessed = 0;
-
     private DateTime _currentQueryTime;
+
 
     public LiveGame(ConcurrentQueue<ServerJson> pendingReadings, WeatherColorSettings weatherColor)
     {
@@ -39,34 +39,33 @@ public class LiveGame : Game
         _pendingReadings = pendingReadings;
 
         WeatherColor.SetValues(weatherColor);
-
-        weatherStations =
-        [
-            new WeatherStation("station_a", Vector2.One),
-            new WeatherStation("station_b", Vector2.One),
-        ];
     }
 
     protected override void Initialize()
     {
         base.Initialize();
 
-        _calculatedIsoStep = (WeatherColor.PRES_MAX - WeatherColor.PRES_MIN) * ISO_BAR_STEP;
+        Rectangle screenSize = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
 
-        // n =  2
-        // TODO: CREATE WEATHER STATIONS MANUALLY. Since I am not doing it automaticallyt
-        weatherStations[0].NormalizedPosition = new Vector2(0.25f, 0.50f);
-        weatherStations[1].NormalizedPosition = new Vector2(0.85f, 0.50f);
+        _calculatedIsoStep = (WeatherColor.PRES_MAX - WeatherColor.PRES_MIN) * ISO_BAR_STEP;
 
         weatherMap = new WeatherMap(
             GraphicsDevice,
-            new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height),
-            weatherStations,
+            screenSize,
             isoBarStep: _calculatedIsoStep,
             stationRadius: 16
         );
 
-        //weatherMap.RegenerateFieldTexture(currentTimeInSeconds, weatherStations[0], weatherStations[1]);
+
+        weatherStations =
+        [
+            new WeatherStation("station_a", new Vector2(0.15f, 0.25f), screenSize),
+            new WeatherStation("station_b", new Vector2(0.50f, 0.15f), screenSize),
+            new WeatherStation("station_c", new Vector2(0.85f, 0.30f), screenSize),
+            new WeatherStation("station_d", new Vector2(0.25f, 0.75f), screenSize),
+            new WeatherStation("station_e", new Vector2(0.75f, 0.80f), screenSize),
+            new WeatherStation("station_f", new Vector2(0.5f, 0.55f), screenSize)
+        ];
     }
 
     protected override void LoadContent()
@@ -86,13 +85,17 @@ public class LiveGame : Game
 
         while (_pendingReadings.TryDequeue(out ServerJson json))
         {
-            StationData data = ConvertJson(json);
+            StationData data = Utils.ConvertJson(json);
 
             // TODO: update station with data
             WeatherStation targetStation = json.DeviceId switch
             {
                 "station_a" => weatherStations[0],
                 "station_b" => weatherStations[1],
+                "station_c" => weatherStations[2],
+                "station_d" => weatherStations[3],
+                "station_e" => weatherStations[4],
+                "station_f" => weatherStations[5],
                 _ => throw new Exception($"Station '{json.DeviceId}' does not exist!"),
             };
             targetStation.StationDatas.Add(data);
@@ -104,20 +107,20 @@ public class LiveGame : Game
         // Render data if valid
         if (_mapDirty && weatherStations.Count >= 2)
         {
-            weatherMap.RegenerateFieldTexture(weatherStations[0], weatherStations[1]);
+            weatherMap.RegenerateFieldTexture(weatherStations);
 
             _mapDirty = false;
         }
 
         // Mouse Logic is eternal
-        WeatherStation hoveredStation = weatherMap.GetStationMouseOverlap(_currentMouseState);
+        WeatherStation hoveredStation = weatherMap.GetStationMouseOverlap(_currentMouseState, weatherStations);
         if (hoveredStation != null)
         {
             infoLabel = hoveredStation.DescribeLatest();
         }
         else if (weatherStations.Count >= 2)
         {
-            var blended = weatherMap.GetInterpolatedDataAtMouse(_currentMouseState, weatherStations[0], weatherStations[1]);
+            var blended = weatherMap.GetInterpolatedDataAtMouse(_currentMouseState, weatherStations);
             infoLabel = blended.HasValue ? blended.Value.ToString().Replace("Time", "INTERPOLATED-TIME") : "";
         }
         else
@@ -134,7 +137,7 @@ public class LiveGame : Game
 
         _spriteBatch.Begin();
 
-        weatherMap.Draw(_spriteBatch);
+        weatherMap.Draw(_spriteBatch, weatherStations);
 
         _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.White);
 
@@ -147,16 +150,5 @@ public class LiveGame : Game
 
 
         base.Draw(gameTime);
-    }
-
-    private StationData ConvertJson(ServerJson json)
-    {
-        return new StationData(
-            Time: json.Time,
-            Temperature: json.Temperature,
-            Humidity: json.Humidity,
-            WindSpeed: json.Wind,
-            Pressure: json.Pressure
-        );
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using DataVisualizer.ServerReading;
 
@@ -6,22 +7,42 @@ namespace DataVisualizerLive.ServerReading;
 
 public class MockReader : IServerReader
 {
+    private class MockStationState
+    {
+        public required string DeviceId { get; init; }
+        public float Temperature { get; set; }
+        public float Humidity { get; set; }
+        public float Wind { get; set; }
+        public float Pressure { get; set; }
+    }
+
+    private const int SCALE = 20;
+    private const int DELAY_MAX = 1000;
+    private const int DELAY_MIN = 700;
+
     private readonly Random _random;
 
-    private float _stationATemperature = 18f;
-    private float _stationAHumidity = 55f;
-    private float _stationAWind = 12f;
-    private float _stationAPressure = 1012f;
-    private float _stationBTemperature = 22f;
-    private float _stationBHumidity = 48f;
-    private float _stationBWind = 8f;
-    private float _stationBPressure = 1008f;
+    private readonly List<MockStationState> _stations;
 
-    private bool _sendStationA = true;
+    private int _nextStationIndex = 0;
+    private int _nextSerial = 1;
 
-    public MockReader()
+    public MockReader(int seed = 6969, int stationCount = 4)
     {
-        _random = new Random();
+        _random = new Random(seed);
+        _stations = new List<MockStationState>();
+
+        for (int i = 0; i < stationCount; i++)
+        {
+            _stations.Add(new MockStationState
+            {
+                DeviceId = $"station_{(char)('a' + i)}",
+                Temperature = RandomRange(10f, 30f),
+                Humidity = RandomRange(30f, 80f),
+                Wind = RandomRange(2f, 20f),
+                Pressure = RandomRange(990f, 1025f)
+            });
+        }
     }
 
     public Task InitializeAsync()
@@ -31,61 +52,43 @@ public class MockReader : IServerReader
 
     public async Task<ServerJson> ReadServer()
     {
-        await Task.Delay(1000);
+        await Task.Delay(_random.Next(DELAY_MIN, DELAY_MAX));
 
-        bool isStationA = _sendStationA;
-        _sendStationA = !_sendStationA;
+        MockStationState station = _stations[_nextStationIndex];
 
-        if (isStationA)
+        _nextStationIndex++;
+        if (_nextStationIndex >= _stations.Count)
+            _nextStationIndex = 0;
+
+        station.Temperature += RandomDelta(0.4f);
+        station.Humidity += RandomDelta(1.5f);
+        station.Wind += RandomDelta(1.0f);
+        station.Pressure += RandomDelta(0.8f);
+
+        station.Temperature = Math.Clamp(station.Temperature, -20f, 40f);
+        station.Humidity = Math.Clamp(station.Humidity, 0f, 100f);
+        station.Wind = Math.Clamp(station.Wind, 0f, 80f);
+        station.Pressure = Math.Clamp(station.Pressure, 950f, 1050f);
+
+        return new ServerJson
         {
-            _stationATemperature += RandomDelta(0.4f);
-            _stationAHumidity += RandomDelta(1.5f);
-            _stationAWind += RandomDelta(1.0f);
-            _stationAPressure += RandomDelta(0.8f);
-
-            _stationATemperature = Math.Clamp(_stationATemperature, -20f, 40f);
-            _stationAHumidity = Math.Clamp(_stationAHumidity, 0f, 100f);
-            _stationAWind = Math.Clamp(_stationAWind, 0f, 80f);
-            _stationAPressure = Math.Clamp(_stationAPressure, 950f, 1050f);
-
-            return new ServerJson
-            {
-                DeviceId = "station_a",
-                Serial = 1,
-                Time = DateTime.UtcNow,
-                Temperature = _stationATemperature,
-                Humidity = _stationAHumidity,
-                Wind = _stationAWind,
-                Pressure = _stationAPressure
-            };
-        }
-        else
-        {
-            _stationBTemperature += RandomDelta(0.4f);
-            _stationBHumidity += RandomDelta(1.5f);
-            _stationBWind += RandomDelta(1.0f);
-            _stationBPressure += RandomDelta(0.8f);
-
-            _stationBTemperature = Math.Clamp(_stationBTemperature, -20f, 40f);
-            _stationBHumidity = Math.Clamp(_stationBHumidity, 0f, 100f);
-            _stationBWind = Math.Clamp(_stationBWind, 0f, 80f);
-            _stationBPressure = Math.Clamp(_stationBPressure, 950f, 1050f);
-
-            return new ServerJson
-            {
-                DeviceId = "station_b",
-                Serial = 2,
-                Time = DateTime.UtcNow,
-                Temperature = _stationBTemperature,
-                Humidity = _stationBHumidity,
-                Wind = _stationBWind,
-                Pressure = _stationBPressure
-            };
-        }
+            DeviceId = station.DeviceId,
+            Serial = _nextSerial++,
+            Time = DateTime.UtcNow,
+            Temperature = station.Temperature,
+            Humidity = station.Humidity,
+            Wind = station.Wind,
+            Pressure = station.Pressure
+        };
     }
 
     private float RandomDelta(float magnitude)
     {
-        return ((float)_random.NextDouble() * 2f - 1f) * magnitude;
+        return ((float)_random.NextDouble() * 2f - 1f) * magnitude * SCALE;
+    }
+
+    private float RandomRange(float min, float max)
+    {
+        return min + ((float)_random.NextDouble() * (max - min));
     }
 }

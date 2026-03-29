@@ -31,3 +31,10 @@ There is not internal step
 switch to using date time, instead of float time.
 
 Potentially remove time setter from everything. This is either removing time completely, or switching to datetime
+
+---
+todo:
+0. [x] Detach wind from colors
+1. [x] 3 stations
+2. [x] The rest
+3. [ ] Isobars
