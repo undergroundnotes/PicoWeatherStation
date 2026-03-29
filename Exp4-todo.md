@@ -38,3 +38,11 @@ todo:
 1. [x] 3 stations
 2. [x] The rest
 3. [ ] Isobars
+
+
+Beauty:
+- Bg image of winnipeg
+- green colors are potentially invisable
+- Station icon something other than a circle
+- something with wind
+- click and drag station locations?!?!

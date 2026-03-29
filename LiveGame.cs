@@ -19,6 +19,9 @@ public class LiveGame : Game
     List<WeatherStation> weatherStations;
     private WeatherMap weatherMap;
 
+    private Texture2D _stationTexture;
+
+
     private string infoLabel = "";
 
     private const float ISO_BAR_STEP = 0.15f;
@@ -53,7 +56,8 @@ public class LiveGame : Game
             GraphicsDevice,
             screenSize,
             isoBarStep: _calculatedIsoStep,
-            stationRadius: 16
+            scale: 0.75f,
+            stationTexture: _stationTexture
         );
 
 
@@ -72,6 +76,7 @@ public class LiveGame : Game
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         font = Content.Load<SpriteFont>("font");
+        _stationTexture = Content.Load<Texture2D>("picoW");
     }
 
     protected override void Update(GameTime gameTime)

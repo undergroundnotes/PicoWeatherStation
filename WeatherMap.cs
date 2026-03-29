@@ -13,23 +13,20 @@ public class WeatherMap
     private readonly Texture2D _stationTex;
     private readonly Texture2D _fieldTex;
     private readonly Color[] _fieldPixels;
-
-    private readonly int _stationRadius;
     private readonly float _isobarPressureStep;
 
     private readonly int _fieldWidth;
     private readonly int _fieldHeight;
 
-    public WeatherMap(GraphicsDevice gd, Rectangle destRect, float isoBarStep, int stationRadius = 10)
+    public WeatherMap(GraphicsDevice gd, Rectangle destRect, float isoBarStep, float scale = 1f, Texture2D stationTexture = null)
     {
         _destRect = destRect;
-        _stationRadius = stationRadius;
         _isobarPressureStep = isoBarStep;
 
-        _stationTex = Utils.CreateCircleTexture(gd, _stationRadius, Color.White, 4, Color.Black);
+        _stationTex = stationTexture ?? Utils.CreateCircleTexture(gd, 12, Color.White, 3, Color.Black);
 
-        _fieldWidth = (int)(_destRect.Width / 1.75);
-        _fieldHeight = (int)(_destRect.Height / 1.75);
+        _fieldWidth = (int)(_destRect.Width * scale);
+        _fieldHeight = (int)(_destRect.Height * scale);
 
         _fieldTex = new Texture2D(gd, _fieldWidth, _fieldHeight);
         _fieldPixels = new Color[_fieldWidth * _fieldHeight];
@@ -45,7 +42,7 @@ public class WeatherMap
             if (!s.HasData) continue;
 
             Vector2 stationPosition = s.ScreenPosition;
-            if (Vector2.Distance(mousePosition, stationPosition) <= _stationRadius * WeatherColor.WindScale(s.GetLatestData().Value))
+            if (Vector2.Distance(mousePosition, stationPosition) <= _stationTex.Width / 2f/* * WeatherColor.WindScale(s.GetLatestData().Value)*/)
                 return s;
         }
 
@@ -76,9 +73,9 @@ public class WeatherMap
 
             Color color = WeatherColor.ToColor(data.Value);
 
-            float stationScale = WeatherColor.WindScale(data.Value); // 0.5f
+            float stationScale = 1f;//WeatherColor.WindScale(data.Value); // 0.5f
 
-            spriteBatch.Draw(_stationTex, staionRenderPosition, null, color, 0f, new Vector2(_stationRadius), scale: stationScale, SpriteEffects.None, 0f);
+            spriteBatch.Draw(_stationTex, staionRenderPosition, null, color, 0f, new Vector2(_stationTex.Width / 2f, _stationTex.Height / 2f), scale: stationScale, SpriteEffects.None, 0f);
         }
     }
 
