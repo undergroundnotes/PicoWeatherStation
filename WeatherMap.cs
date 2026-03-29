@@ -34,15 +34,15 @@ public class WeatherMap
 
     public WeatherStation GetStationMouseOverlap(MouseState mouse, List<WeatherStation> stations)
     {
-        Vector2 mousePosition = new Vector2(mouse.X, mouse.Y);
         if (!_destRect.Contains(mouse.X, mouse.Y)) return null;
+
+        Vector2 mousePosition = ScreenToField(new Vector2(mouse.X, mouse.Y));
 
         foreach (var s in stations)
         {
             if (!s.HasData) continue;
 
-            Vector2 stationPosition = s.ScreenPosition;
-            if (Vector2.Distance(mousePosition, stationPosition) <= _stationTex.Width / 2f/* * WeatherColor.WindScale(s.GetLatestData().Value)*/)
+            if (Vector2.Distance(mousePosition, s.FieldPosition) <= _stationTex.Width / 2f/* * WeatherColor.WindScale(s.GetLatestData().Value)*/)
                 return s;
         }
 
@@ -54,7 +54,7 @@ public class WeatherMap
         if (!_destRect.Contains(mouse.X, mouse.Y) || stations.Count < 2)
             return null;
 
-        Vector2 p = new Vector2(mouse.X, mouse.Y);
+        Vector2 p = ScreenToField(new Vector2(mouse.X, mouse.Y));
 
         return InterpolateIDW(p, stations);
     }
@@ -69,7 +69,7 @@ public class WeatherMap
             if (!data.HasValue)
                 continue;
 
-            Vector2 staionRenderPosition = station.ScreenPosition;
+            Vector2 staionRenderPosition = FieldToScreen(station.FieldPosition);
 
             Color color = WeatherColor.ToColor(data.Value);
 
@@ -94,10 +94,13 @@ public class WeatherMap
         {
             for (int x = 0; x < _fieldWidth; x++)
             {
-                float screenX = _destRect.X + (x * scaleX);
+                /*float screenX = _destRect.X + (x * scaleX);
                 float screenY = _destRect.Y + (y * scaleY);
 
-                Vector2 p = new Vector2(screenX, screenY);
+                Vector2 p = new Vector2(screenX, screenY);*/
+                Vector2 p = new Vector2(x * scaleX, y * scaleY);
+
+                // Before the point p was in screen space, now it is in field space. Less pixels!!!!!
 
                 StationData? blended = InterpolateIDW(p, stations);
 
@@ -133,7 +136,7 @@ public class WeatherMap
             StationData? data = station.GetLatestData();
             if (!data.HasValue) continue;
 
-            Vector2 pos = station.ScreenPosition;
+            Vector2 pos = ScreenToField(station.FieldPosition);
 
             // Distance from p to the station
             float dx = pos.X - p.X;
@@ -163,5 +166,15 @@ public class WeatherMap
             Humidity: humidity / totalWeight,
             WindSpeed: wind / totalWeight
         );
+    }
+
+    private Vector2 FieldToScreen(Vector2 fieldPosition)
+    {
+        return new Vector2(_destRect.X + fieldPosition.X, _destRect.Y + fieldPosition.Y);
+    }
+
+    private Vector2 ScreenToField(Vector2 screenPosition)
+    {
+        return new Vector2(screenPosition.X - _destRect.X, screenPosition.Y - _destRect.Y);
     }
 }

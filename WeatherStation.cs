@@ -3,27 +3,22 @@ using Microsoft.Xna.Framework;
 
 namespace DataVisualizer;
 
-// Positions are fixed. THis keeps things sane
-// Calculations are now based off screenPos, however, normal pos is good for placing the stations
 public class WeatherStation
 {
     public string Label { get; set; }
-    public Vector2 NormalizedPosition { get; }
 
     public readonly List<StationData> StationDatas;// Yes, this is a bad name. I dont care. This contains temp, pres, hum
     public bool HasData => StationDatas.Count > 0;
 
+    public Vector2 FieldPosition { get; set; }// Using this is a MASSIVE performance gain. As now ALL the "pixel areas" I am looking at are big. Before when using screen space, I would be doing extra calculations as the field pixel is bigger, thus contains many screen pixels, thus more calcs. However, now THINGS ARE SOO GOOD WTF
 
-    private Vector2 _screenPos = -Vector2.One;
-    public Vector2 ScreenPosition => _screenPos;
-
-    public WeatherStation(string label, Vector2 normalPosition, Rectangle screen, List<StationData> stationDatas = null)
+    public WeatherStation(string label, Vector2 fieldPosition, List<StationData> stationDatas = null)
     {
+        // It is arguable if passing this a fieldPosition makes sense or not, choosing to not do some other thing.
+        // Nah, it does make sense
         Label = label;
-        NormalizedPosition = normalPosition;
+        FieldPosition = fieldPosition;
         StationDatas = stationDatas ?? new List<StationData>();
-
-        _screenPos = new Vector2(screen.X + (NormalizedPosition.X * screen.Width), screen.Y + (NormalizedPosition.Y * screen.Height));
     }
 
     public void AddReading(StationData data)

@@ -58,20 +58,21 @@ public class LiveGame : Game
             GraphicsDevice,
             screenSize,
             isoBarStep: _calculatedIsoStep,
-            scale: 0.75f,
+            scale: 0.2f,
             stationTexture: _stationTexture
         );
 
 
         weatherStations =
         [
-            new WeatherStation("station_a", new Vector2(0.15f, 0.25f), screenSize),
-            new WeatherStation("station_b", new Vector2(0.50f, 0.15f), screenSize),
-            new WeatherStation("station_c", new Vector2(0.85f, 0.30f), screenSize),
-            new WeatherStation("station_d", new Vector2(0.25f, 0.75f), screenSize),
-            new WeatherStation("station_e", new Vector2(0.75f, 0.80f), screenSize),
-            new WeatherStation("station_f", new Vector2(0.5f, 0.55f), screenSize)
+            new WeatherStation("station_a", new Vector2(0.15f * screenSize.Width, 0.25f * screenSize.Height)),
+            new WeatherStation("station_b", new Vector2(0.50f* screenSize.Width, 0.15f* screenSize.Height)),
+            new WeatherStation("station_c", new Vector2(0.85f* screenSize.Width, 0.30f* screenSize.Height)),
+            new WeatherStation("station_d", new Vector2(0.25f* screenSize.Width, 0.75f* screenSize.Height)),
+            new WeatherStation("station_e", new Vector2(0.75f* screenSize.Width, 0.80f* screenSize.Height)),
+            new WeatherStation("station_f", new Vector2(0.5f* screenSize.Width, 0.55f* screenSize.Height))
         ];
+        // Pos assignments are ugly ONLY at the start. Beauty comes from time.
     }
 
     protected override void LoadContent()
@@ -88,39 +89,50 @@ public class LiveGame : Game
             Exit();
 
         _currentMouseState = Mouse.GetState();
-        _currentQueryTime = DateTime.UtcNow;
 
+        bool updateMap = true;
 
-        while (_pendingReadings.TryDequeue(out ServerJson json))
+        if (_currentMouseState.LeftButton == ButtonState.Pressed)
         {
-            StationData data = Utils.ConvertJson(json);
+            updateMap = false;
 
-            // TODO: update station with data
-            WeatherStation targetStation = json.DeviceId switch
+            // If pressed over station, the station moves with the mouse
+        }
+
+
+        if (updateMap)
+        {
+            _currentQueryTime = DateTime.UtcNow;
+            while (_pendingReadings.TryDequeue(out ServerJson json))
             {
-                "station_a" => weatherStations[0],
-                "station_b" => weatherStations[1],
-                "station_c" => weatherStations[2],
-                "station_d" => weatherStations[3],
-                "station_e" => weatherStations[4],
-                "station_f" => weatherStations[5],
-                _ => throw new Exception($"Station '{json.DeviceId}' does not exist!"),
-            };
-            targetStation.StationDatas.Add(data);
+                StationData data = Utils.ConvertJson(json);
 
-            _totalReadingsProcessed++;
-            _mapDirty = true;
+                // TODO: update station with data
+                WeatherStation targetStation = json.DeviceId switch
+                {
+                    "station_a" => weatherStations[0],
+                    "station_b" => weatherStations[1],
+                    "station_c" => weatherStations[2],
+                    "station_d" => weatherStations[3],
+                    "station_e" => weatherStations[4],
+                    "station_f" => weatherStations[5],
+                    _ => throw new Exception($"Station '{json.DeviceId}' does not exist!"),
+                };
+                targetStation.StationDatas.Add(data);
+
+                _totalReadingsProcessed++;
+                _mapDirty = true;
+            }
+
+            // Render data if valid
+            if (_mapDirty && weatherStations.Count >= 2)
+            {
+                weatherMap.RegenerateFieldTexture(weatherStations);
+                _mapDirty = false;
+            }
         }
 
-        // Render data if valid
-        if (_mapDirty && weatherStations.Count >= 2)
-        {
-            weatherMap.RegenerateFieldTexture(weatherStations);
-
-            _mapDirty = false;
-        }
-
-        // Mouse Logic is eternal
+        // Mouse Logic is eternal. This is dependant on the map
         WeatherStation hoveredStation = weatherMap.GetStationMouseOverlap(_currentMouseState, weatherStations);
         if (hoveredStation != null)
         {
@@ -147,7 +159,7 @@ public class LiveGame : Game
 
         _spriteBatch.Draw(_mapTexture, new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), Color.White);
 
-        weatherMap.Draw(_spriteBatch, weatherStations, alpha: 0.75f);
+        weatherMap.Draw(_spriteBatch, weatherStations, alpha: 0.8f);
 
         _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.White);
 

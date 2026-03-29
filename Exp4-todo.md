@@ -42,7 +42,8 @@ todo:
 
 Beauty:
 - [x] Bg image of winnipeg
-- [ ] green colors are potentially invisable
+- [ ] ~~green colors are potentially invisable~~
 - [x] Station icon something other than a circle
 - [ ] something with wind
 - [ ] click and drag station locations?!?!
+    - [ ] FIELD space coords
