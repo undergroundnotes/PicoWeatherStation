@@ -37,7 +37,7 @@ todo:
 0. [x] Detach wind from colors
 1. [x] 3 stations
 2. [x] The rest
-3. [ ] Isobars
+3. [x] Isobars
 
 
 Beauty:
@@ -45,5 +45,5 @@ Beauty:
 - [ ] ~~green colors are potentially invisable~~
 - [x] Station icon something other than a circle
 - [ ] something with wind
-- [ ] click and drag station locations?!?!
-    - [ ] FIELD space coords
+- [x] click and drag station locations?!?!
+    - [x] FIELD space coords
