@@ -26,7 +26,7 @@ public class LiveGame : Game
 
     private string infoLabel = "";
 
-    private const float ISO_BAR_STEP = 0.15f;
+    private const float ISO_BAR_STEP = 0.1f;
     private float _calculatedIsoStep;
 
     private readonly ConcurrentQueue<ServerJson> _pendingReadings;
@@ -63,7 +63,7 @@ public class LiveGame : Game
             isoBarStep: _calculatedIsoStep,
             scale: 0.85f,
             stationTexture: _stationTexture,
-            mapAlpha: 0.7f
+            mapAlpha: 1f
         );
 
 
@@ -179,11 +179,16 @@ public class LiveGame : Game
     {
         GraphicsDevice.Clear(Color.CornflowerBlue);
 
-        _spriteBatch.Begin();
+        _spriteBatch.Begin(blendState: _multiplyBlend);
 
         _spriteBatch.Draw(_mapTexture, new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), Color.White);
+        weatherMap.DrawMap(_spriteBatch);
 
-        weatherMap.Draw(_spriteBatch, weatherStations);
+        _spriteBatch.End();
+
+        _spriteBatch.Begin();
+
+        weatherMap.DrawStations(_spriteBatch, weatherStations);
 
         _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.White);
 
@@ -197,4 +202,15 @@ public class LiveGame : Game
 
         base.Draw(gameTime);
     }
+
+    private readonly BlendState _multiplyBlend = new BlendState
+    {
+        ColorSourceBlend = Blend.DestinationColor,
+        ColorDestinationBlend = Blend.Zero,
+        ColorBlendFunction = BlendFunction.Add,
+
+        AlphaSourceBlend = Blend.One,
+        AlphaDestinationBlend = Blend.Zero,
+        AlphaBlendFunction = BlendFunction.Add
+    };
 }

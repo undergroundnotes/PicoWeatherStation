@@ -64,9 +64,14 @@ public class WeatherMap
         return InterpolateIDW(p, stations);
     }
 
-    public void Draw(SpriteBatch spriteBatch, List<WeatherStation> stations)
+    public void DrawMap(SpriteBatch spriteBatch)
     {
         spriteBatch.Draw(_fieldTex, DestRect, Color.White);
+    }
+
+    public void DrawStations(SpriteBatch spriteBatch, List<WeatherStation> stations)
+    {
+        //spriteBatch.Draw(_fieldTex, DestRect, Color.White);
 
         foreach (WeatherStation station in stations)
         {
@@ -76,9 +81,9 @@ public class WeatherMap
 
             Vector2 staionRenderPosition = FieldToScreen(station.FieldPosition);
 
-            Color color = WeatherColor.ToColor(data.Value);
+            Color color = Color.White;//WeatherColor.ToColor(data.Value);
 
-            float stationScale = 1f;//WeatherColor.WindScale(data.Value); // 0.5f
+            float stationScale = 0.75f;//WeatherColor.WindScale(data.Value); // 0.5f
 
             spriteBatch.Draw(_stationTex, staionRenderPosition, null, color, 0f, new Vector2(_stationTex.Width / 2f, _stationTex.Height / 2f), scale: stationScale, SpriteEffects.None, 0f);
         }

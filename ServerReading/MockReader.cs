@@ -16,7 +16,7 @@ public class MockReader : IServerReader
         public float Pressure { get; set; }
     }
 
-    private const int SCALE = 30;
+    private const int SCALE = 3;
     private const int DELAY_MAX = 1000;
     private const int DELAY_MIN = 700;
 
