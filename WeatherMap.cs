@@ -9,7 +9,7 @@ namespace DataVisualizer;
 
 public class WeatherMap
 {
-    private Rectangle _destRect { get; set; }
+    public Rectangle DestRect { get; private set; }
     private readonly Texture2D _stationTex;
     private readonly Texture2D _fieldTex;
     private readonly Color[] _fieldPixels;
@@ -20,13 +20,14 @@ public class WeatherMap
 
     public WeatherMap(GraphicsDevice gd, Rectangle destRect, float isoBarStep, float scale = 1f, Texture2D stationTexture = null)
     {
-        _destRect = destRect;
+        // Dest rect vs field pos is very confusing
+        DestRect = destRect;
         _isobarPressureStep = isoBarStep;
 
         _stationTex = stationTexture ?? Utils.CreateCircleTexture(gd, 12, Color.White, 3, Color.Black);
 
-        _fieldWidth = (int)(_destRect.Width * scale);
-        _fieldHeight = (int)(_destRect.Height * scale);
+        _fieldWidth = (int)(DestRect.Width * scale);
+        _fieldHeight = (int)(DestRect.Height * scale);
 
         _fieldTex = new Texture2D(gd, _fieldWidth, _fieldHeight);
         _fieldPixels = new Color[_fieldWidth * _fieldHeight];
@@ -34,7 +35,7 @@ public class WeatherMap
 
     public WeatherStation GetStationMouseOverlap(MouseState mouse, List<WeatherStation> stations)
     {
-        if (!_destRect.Contains(mouse.X, mouse.Y)) return null;
+        if (!DestRect.Contains(mouse.X, mouse.Y)) return null;
 
         Vector2 mousePosition = ScreenToField(new Vector2(mouse.X, mouse.Y));
 
@@ -51,7 +52,7 @@ public class WeatherMap
 
     public StationData? GetInterpolatedDataAtMouse(MouseState mouse, List<WeatherStation> stations)
     {
-        if (!_destRect.Contains(mouse.X, mouse.Y) || stations.Count < 2)
+        if (!DestRect.Contains(mouse.X, mouse.Y) || stations.Count < 2)
             return null;
 
         Vector2 p = ScreenToField(new Vector2(mouse.X, mouse.Y));
@@ -61,7 +62,7 @@ public class WeatherMap
 
     public void Draw(SpriteBatch spriteBatch, List<WeatherStation> stations, float alpha = 1f)
     {
-        spriteBatch.Draw(_fieldTex, _destRect, Color.White * alpha);
+        spriteBatch.Draw(_fieldTex, DestRect, Color.White * alpha);
 
         foreach (WeatherStation station in stations)
         {
@@ -87,15 +88,15 @@ public class WeatherMap
             return;
         }
 
-        float scaleX = (float)_destRect.Width / _fieldWidth;
-        float scaleY = (float)_destRect.Height / _fieldHeight;
+        float scaleX = (float)DestRect.Width / _fieldWidth;
+        float scaleY = (float)DestRect.Height / _fieldHeight;
 
         for (int y = 0; y < _fieldHeight; y++)
         {
             for (int x = 0; x < _fieldWidth; x++)
             {
-                /*float screenX = _destRect.X + (x * scaleX);
-                float screenY = _destRect.Y + (y * scaleY);
+                /*float screenX = DestRect.X + (x * scaleX);
+                float screenY = DestRect.Y + (y * scaleY);
 
                 Vector2 p = new Vector2(screenX, screenY);*/
                 Vector2 p = new Vector2(x * scaleX, y * scaleY);
@@ -170,11 +171,11 @@ public class WeatherMap
 
     private Vector2 FieldToScreen(Vector2 fieldPosition)
     {
-        return new Vector2(_destRect.X + fieldPosition.X, _destRect.Y + fieldPosition.Y);
+        return new Vector2(DestRect.X + fieldPosition.X, DestRect.Y + fieldPosition.Y);
     }
 
-    private Vector2 ScreenToField(Vector2 screenPosition)
+    public Vector2 ScreenToField(Vector2 screenPosition)
     {
-        return new Vector2(screenPosition.X - _destRect.X, screenPosition.Y - _destRect.Y);
+        return new Vector2(screenPosition.X - DestRect.X, screenPosition.Y - DestRect.Y);
     }
 }

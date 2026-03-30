@@ -34,6 +34,9 @@ public class LiveGame : Game
     private int _totalReadingsProcessed = 0;
     private DateTime _currentQueryTime;
 
+    private MouseState _previousMouseState;
+    private WeatherStation _draggedStation;
+
 
     public LiveGame(ConcurrentQueue<ServerJson> pendingReadings, WeatherColorSettings weatherColor)
     {
@@ -58,7 +61,7 @@ public class LiveGame : Game
             GraphicsDevice,
             screenSize,
             isoBarStep: _calculatedIsoStep,
-            scale: 0.2f,
+            scale: 0.7f,
             stationTexture: _stationTexture
         );
 
@@ -88,15 +91,35 @@ public class LiveGame : Game
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
 
+        _previousMouseState = _currentMouseState;
         _currentMouseState = Mouse.GetState();
 
         bool updateMap = true;
 
-        if (_currentMouseState.LeftButton == ButtonState.Pressed)
+        // Drag = held down
+        // Thus start = pressed; stop = released; in between: follow the mouse
+        // Note: dragging is super fucking slow. I may need to pause the map updates
+        if (_currentMouseState.LeftButton == ButtonState.Pressed && _previousMouseState.LeftButton == ButtonState.Released)
         {
-            updateMap = false;
+            _draggedStation = weatherMap.GetStationMouseOverlap(_currentMouseState, weatherStations);
+        }
+        else if (_draggedStation != null && _currentMouseState.LeftButton == ButtonState.Pressed)
+        {
+            // The position becomes the field of the mouses screen position
+            Vector2 fieldPosition = weatherMap.ScreenToField(new Vector2(_currentMouseState.X, _currentMouseState.Y));
 
-            // If pressed over station, the station moves with the mouse
+            fieldPosition.X = Math.Clamp(fieldPosition.X, 0f, weatherMap.DestRect.Width);
+            fieldPosition.Y = Math.Clamp(fieldPosition.Y, 0f, weatherMap.DestRect.Height);
+
+            _draggedStation.FieldPosition = fieldPosition;
+
+            _mapDirty = true;
+            updateMap = false;
+        }
+        else if (_currentMouseState.LeftButton == ButtonState.Released && _previousMouseState.LeftButton == ButtonState.Pressed)
+        {
+            _draggedStation = null;
+            updateMap = true;
         }
 
 
