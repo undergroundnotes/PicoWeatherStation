@@ -61,8 +61,9 @@ public class LiveGame : Game
             GraphicsDevice,
             screenSize,
             isoBarStep: _calculatedIsoStep,
-            scale: 0.7f,
-            stationTexture: _stationTexture
+            scale: 0.85f,
+            stationTexture: _stationTexture,
+            mapAlpha: 0.7f
         );
 
 
@@ -182,7 +183,7 @@ public class LiveGame : Game
 
         _spriteBatch.Draw(_mapTexture, new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), Color.White);
 
-        weatherMap.Draw(_spriteBatch, weatherStations, alpha: 0.8f);
+        weatherMap.Draw(_spriteBatch, weatherStations);
 
         _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.White);
 

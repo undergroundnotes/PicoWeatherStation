@@ -18,7 +18,9 @@ public class WeatherMap
     private readonly int _fieldWidth;
     private readonly int _fieldHeight;
 
-    public WeatherMap(GraphicsDevice gd, Rectangle destRect, float isoBarStep, float scale = 1f, Texture2D stationTexture = null)
+    private readonly float _alpha;
+
+    public WeatherMap(GraphicsDevice gd, Rectangle destRect, float isoBarStep, float scale = 1f, Texture2D stationTexture = null, float mapAlpha = 0.5f)
     {
         // Dest rect vs field pos is very confusing
         DestRect = destRect;
@@ -31,6 +33,8 @@ public class WeatherMap
 
         _fieldTex = new Texture2D(gd, _fieldWidth, _fieldHeight);
         _fieldPixels = new Color[_fieldWidth * _fieldHeight];
+
+        _alpha = mapAlpha;
     }
 
     public WeatherStation GetStationMouseOverlap(MouseState mouse, List<WeatherStation> stations)
@@ -60,9 +64,9 @@ public class WeatherMap
         return InterpolateIDW(p, stations);
     }
 
-    public void Draw(SpriteBatch spriteBatch, List<WeatherStation> stations, float alpha = 1f)
+    public void Draw(SpriteBatch spriteBatch, List<WeatherStation> stations)
     {
-        spriteBatch.Draw(_fieldTex, DestRect, Color.White * alpha);
+        spriteBatch.Draw(_fieldTex, DestRect, Color.White);
 
         foreach (WeatherStation station in stations)
         {
@@ -104,7 +108,6 @@ public class WeatherMap
                 // Before the point p was in screen space, now it is in field space. Less pixels!!!!!
 
                 StationData? blended = InterpolateIDW(p, stations);
-
                 int pixelIndex = y * _fieldWidth + x;
 
                 if (!blended.HasValue)
@@ -113,7 +116,24 @@ public class WeatherMap
                     continue;
                 }
 
-                _fieldPixels[pixelIndex] = WeatherColor.ToColor(blended.Value);
+                // Ok. We know the pressure. We also know the step. Thus, we know if pressure is a multiple of step, it is a isobar
+                // For rendering sake, we will check if its close enough to the isobar value
+                // ex: pressure = 999.8; step = 3
+                // We want to find the nearest bar. Thus the nearest bar is 999
+                // 999.8 % 3 = 0.79
+
+                float remainder = blended.Value.Pressure % _isobarPressureStep;
+
+                if (remainder < 0.2)
+                {
+                    _fieldPixels[pixelIndex] = Color.Black;
+                }
+                else
+                {
+                    Color color = WeatherColor.ToColor(blended.Value);
+                    color.A = (byte)(_alpha * 255);
+                    _fieldPixels[pixelIndex] = color;
+                }
             }
         }
 
