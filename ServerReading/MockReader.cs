@@ -16,7 +16,7 @@ public class MockReader : IServerReader
         public float Pressure { get; set; }
     }
 
-    private const int SCALE = 3;
+    private const int SCALE = 30;
     private const int DELAY_MAX = 1000;
     private const int DELAY_MIN = 700;
 
@@ -27,7 +27,7 @@ public class MockReader : IServerReader
     private int _nextStationIndex = 0;
     private int _nextSerial = 1;
 
-    public MockReader(int seed = 6969, int stationCount = 5)
+    public MockReader(int seed = 6969, int stationCount = 3)
     {
         _random = new Random(seed);
         _stations = new List<MockStationState>();

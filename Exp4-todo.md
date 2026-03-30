@@ -47,3 +47,15 @@ Beauty:
 - [ ] something with wind
 - [x] click and drag station locations?!?!
     - [x] FIELD space coords
+
+
+---
+
+Extra todos:
+- [ ] Space bar = toggle pause
+- [ ] "Proper" UI. aka dont cover the screen with text in random locations
+- [ ] Code cleanup
+- [ ] Figure out proper blending. I kinda like my old visuals better (This was done through passing the alpha in the draw call, rather than the color)
+- [x] Thin isobars?
+- [ ] something with wind
+- [ ] Make things faster

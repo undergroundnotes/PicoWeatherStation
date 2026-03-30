@@ -61,7 +61,7 @@ public class WeatherMap
 
         Vector2 p = ScreenToField(new Vector2(mouse.X, mouse.Y));
 
-        return InterpolateIDW(p, stations);
+        return InterpolateIDW(p, stations, out _);
     }
 
     public void DrawMap(SpriteBatch spriteBatch)
@@ -112,7 +112,7 @@ public class WeatherMap
 
                 // Before the point p was in screen space, now it is in field space. Less pixels!!!!!
 
-                StationData? blended = InterpolateIDW(p, stations);
+                StationData? blended = InterpolateIDW(p, stations, out Vector2 derivitive);
                 int pixelIndex = y * _fieldWidth + x;
 
                 if (!blended.HasValue)
@@ -126,10 +126,20 @@ public class WeatherMap
                 // ex: pressure = 999.8; step = 3
                 // We want to find the nearest bar. Thus the nearest bar is 999
                 // 999.8 % 3 = 0.79
+                //float remainder = blended.Value.Pressure % _isobarPressureStep;
 
-                float remainder = blended.Value.Pressure % _isobarPressureStep;
+                float pressure = blended.Value.Pressure;
+                float contourIndex = pressure / _isobarPressureStep;
+                float nearestContour = MathF.Round(contourIndex) * _isobarPressureStep;
 
-                if (remainder < 0.2)
+                float pressureDifference = MathF.Abs(pressure - nearestContour);
+
+                float gradientMagnitude = MathF.Max(derivitive.Length(), 0.0001f);
+
+                float contourDistance = pressureDifference / gradientMagnitude;
+
+
+                if (contourDistance < 1f)
                 {
                     _fieldPixels[pixelIndex] = Color.Black;
                 }
@@ -146,7 +156,7 @@ public class WeatherMap
     }
 
     // https://en.wikipedia.org/wiki/Inverse_distance_weighting
-    private StationData? InterpolateIDW(Vector2 p, List<WeatherStation> stations)
+    private StationData? InterpolateIDW(Vector2 p, List<WeatherStation> stations, out Vector2 pressureDerivitive)
     {
         float totalWeight = 0f;
 
@@ -156,6 +166,8 @@ public class WeatherMap
         float wind = 0f;
 
         DateTime latestTime = DateTime.MinValue;
+
+        List<(float Pressure, float Weight, Vector2 Delta, float Distance)> gradientData = new();
 
         foreach (WeatherStation station in stations)
         {
@@ -168,8 +180,13 @@ public class WeatherMap
             float dx = pos.X - p.X;
             float dy = pos.Y - p.Y;
             float distSq = dx * dx + dy * dy;
-            if (distSq <= 0.0001f) return data.Value;
-            float weight = 1f / MathF.Sqrt(distSq);
+            if (distSq <= 0.0001f)
+            {
+                pressureDerivitive = Vector2.Zero;
+                return data.Value;
+            }
+            float distance = MathF.Sqrt(distSq);
+            float weight = 1f / distance;
 
             totalWeight += weight;
 
@@ -178,19 +195,44 @@ public class WeatherMap
             humidity += data.Value.Humidity * weight;
             wind += data.Value.WindSpeed * weight;
 
+            gradientData.Add((data.Value.Pressure, weight, new Vector2(dx, dy), distance));
+
             if (data.Value.Time > latestTime)
                 latestTime = data.Value.Time;
         }
 
         if (totalWeight <= 0.0001f)
+        {
+            pressureDerivitive = Vector2.Zero;
             return null;
+        }
+
+        float invWeight = 1f / totalWeight;
+
+        float finalTemperature = temperature * invWeight;
+        float finalPressure = pressure * invWeight;
+        float finalHumidity = humidity * invWeight;
+        float finalWind = wind * invWeight;
+
+        // compute derivitive
+        Vector2 gradient = Vector2.Zero;
+        foreach (var entry in gradientData)
+        {
+            float d3 = entry.Distance * entry.Distance * entry.Distance;
+
+            Vector2 gradWeight = -entry.Delta / d3;
+
+            gradient += gradWeight * (entry.Pressure - finalPressure);
+        }
+
+        pressureDerivitive = gradient * invWeight;
 
         return new StationData(
             Time: latestTime,
-            Temperature: temperature / totalWeight,
-            Pressure: pressure / totalWeight,
-            Humidity: humidity / totalWeight,
-            WindSpeed: wind / totalWeight
+            Temperature: finalTemperature,
+            Pressure: finalPressure,
+            Humidity: finalHumidity,
+            WindSpeed: finalWind
         );
     }
 

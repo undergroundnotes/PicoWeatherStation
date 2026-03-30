@@ -61,9 +61,9 @@ public class LiveGame : Game
             GraphicsDevice,
             screenSize,
             isoBarStep: _calculatedIsoStep,
-            scale: 0.85f,
+            scale: 0.6f,
             stationTexture: _stationTexture,
-            mapAlpha: 1f
+            mapAlpha: 0.5f
         );
 
 
@@ -120,7 +120,6 @@ public class LiveGame : Game
         else if (_currentMouseState.LeftButton == ButtonState.Released && _previousMouseState.LeftButton == ButtonState.Pressed)
         {
             _draggedStation = null;
-            updateMap = true;
         }
 
 
@@ -179,7 +178,7 @@ public class LiveGame : Game
     {
         GraphicsDevice.Clear(Color.CornflowerBlue);
 
-        _spriteBatch.Begin(blendState: _multiplyBlend);
+        _spriteBatch.Begin(/*blendState: _multiplyBlend*/);
 
         _spriteBatch.Draw(_mapTexture, new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), Color.White);
         weatherMap.DrawMap(_spriteBatch);
