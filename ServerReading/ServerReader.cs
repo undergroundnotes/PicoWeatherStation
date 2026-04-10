@@ -40,15 +40,25 @@ public class ServerReader : IServerReader
         {
             string line = await _reader.ReadLineAsync() ?? throw new Exception("Server Reading was null!!!");
 
-            if (!line.StartsWith("data:")) continue;
+            line = line.Trim();
+
+            if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("data:")) continue;
 
             string jsonText = line.Substring("data:".Length).Trim();
 
-            ServerJson? json = JsonSerializer.Deserialize<ServerJson>(jsonText);
+            try
+            {
+                ServerJson? json = JsonSerializer.Deserialize<ServerJson>(jsonText);
 
-            if (!json.HasValue) throw new Exception("Json conversion was null!!!");
+                if (!json.HasValue) continue;
 
-            return json.Value;
+                return json.Value;
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"failed to read JSON: {ex.Message}");
+                Console.WriteLine($"Raw: {jsonText}");
+            }
         }
     }
 }

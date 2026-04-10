@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace DataVisualizer.ServerReading;
@@ -24,7 +25,10 @@ public struct ServerJson
     public required readonly float Wind { get; init; }
 
     [JsonPropertyName("time")]
-    public required readonly DateTime Time { get; init; }
+    public string RawTime { get; init; }
+
+    [JsonIgnore]
+    public DateTime Time => DateTime.ParseExact(RawTime, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 }
 
 /*

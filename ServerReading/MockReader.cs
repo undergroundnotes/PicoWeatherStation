@@ -5,6 +5,9 @@ using DataVisualizer.ServerReading;
 
 namespace DataVisualizerLive.ServerReading;
 
+// Note: this is broken.
+// When switching to read data, we changed station names aswell as how time is done.
+// This shouldnt be a too big of fix. This file was originally created using basic assumption (hardcoded) that no longer exist
 public class MockReader : IServerReader
 {
     private class MockStationState
@@ -27,7 +30,7 @@ public class MockReader : IServerReader
     private int _nextStationIndex = 0;
     private int _nextSerial = 1;
 
-    public MockReader(int seed = 6969, int stationCount = 3)
+    public MockReader(int seed = 6969, int stationCount = 5)
     {
         _random = new Random(seed);
         _stations = new List<MockStationState>();
@@ -74,7 +77,7 @@ public class MockReader : IServerReader
         {
             DeviceId = station.DeviceId,
             Serial = _nextSerial++,
-            Time = DateTime.UtcNow,
+            RawTime = DateTime.UtcNow.Date.ToShortDateString(),
             Temperature = station.Temperature,
             Humidity = station.Humidity,
             Wind = station.Wind,

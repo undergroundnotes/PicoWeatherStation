@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using DataVisualizer.ServerReading;
 using DataVisualizerLive;
 using Microsoft.Xna.Framework;
@@ -16,7 +17,7 @@ public class LiveGame : Game
     private SpriteBatch _spriteBatch;
     private SpriteFont font;
 
-    List<WeatherStation> weatherStations;
+    private List<WeatherStation> _weatherStations;
     private WeatherMap weatherMap;
 
     private Texture2D _stationTexture;
@@ -26,12 +27,13 @@ public class LiveGame : Game
 
     private string infoLabel = "";
 
-    private const float ISO_BAR_STEP = 0.1f;
+    private const float ISO_BAR_STEP = 0.05f;
     private float _calculatedIsoStep;
 
     private readonly ConcurrentQueue<ServerJson> _pendingReadings;
     private bool _mapDirty = false;
-    private int _totalReadingsProcessed = 0;
+
+
     private DateTime _currentQueryTime;
 
     private MouseState _previousMouseState;
@@ -61,19 +63,19 @@ public class LiveGame : Game
             GraphicsDevice,
             screenSize,
             isoBarStep: _calculatedIsoStep,
-            scale: 0.6f,
+            scale: 0.7f,
             stationTexture: _stationTexture,
             mapAlpha: 0.5f
         );
 
 
-        weatherStations =
+        _weatherStations =
         [
-            new WeatherStation("station_a", new Vector2(0.15f * screenSize.Width, 0.25f * screenSize.Height)),
-            new WeatherStation("station_b", new Vector2(0.50f* screenSize.Width, 0.15f* screenSize.Height)),
-            new WeatherStation("station_c", new Vector2(0.85f* screenSize.Width, 0.30f* screenSize.Height)),
-            new WeatherStation("station_d", new Vector2(0.25f* screenSize.Width, 0.75f* screenSize.Height)),
-            new WeatherStation("station_e", new Vector2(0.75f* screenSize.Width, 0.80f* screenSize.Height)),
+            new WeatherStation("PICO_WEATHER_01", new Vector2(0.15f * screenSize.Width, 0.25f * screenSize.Height)),
+            new WeatherStation("PICO_WEATHER_02", new Vector2(0.50f* screenSize.Width, 0.15f* screenSize.Height)),
+            new WeatherStation("PICO_WEATHER_03", new Vector2(0.85f* screenSize.Width, 0.30f* screenSize.Height)),
+            new WeatherStation("PICO_WEATHER_04", new Vector2(0.25f* screenSize.Width, 0.75f* screenSize.Height)),
+            new WeatherStation("PICO_WEATHER_05", new Vector2(0.75f* screenSize.Width, 0.80f* screenSize.Height)),
             new WeatherStation("station_f", new Vector2(0.5f* screenSize.Width, 0.55f* screenSize.Height))
         ];
         // Pos assignments are ugly ONLY at the start. Beauty comes from time.
@@ -102,7 +104,7 @@ public class LiveGame : Game
         // Note: dragging is super fucking slow. I may need to pause the map updates
         if (_currentMouseState.LeftButton == ButtonState.Pressed && _previousMouseState.LeftButton == ButtonState.Released)
         {
-            _draggedStation = weatherMap.GetStationMouseOverlap(_currentMouseState, weatherStations);
+            _draggedStation = weatherMap.GetStationMouseOverlap(_currentMouseState, _weatherStations);
         }
         else if (_draggedStation != null && _currentMouseState.LeftButton == ButtonState.Pressed)
         {
@@ -130,40 +132,30 @@ public class LiveGame : Game
             {
                 StationData data = Utils.ConvertJson(json);
 
-                // TODO: update station with data
-                WeatherStation targetStation = json.DeviceId switch
-                {
-                    "station_a" => weatherStations[0],
-                    "station_b" => weatherStations[1],
-                    "station_c" => weatherStations[2],
-                    "station_d" => weatherStations[3],
-                    "station_e" => weatherStations[4],
-                    "station_f" => weatherStations[5],
-                    _ => throw new Exception($"Station '{json.DeviceId}' does not exist!"),
-                };
+                WeatherStation targetStation = GetTargetStation(json.DeviceId, _weatherStations);
+
                 targetStation.StationDatas.Add(data);
 
-                _totalReadingsProcessed++;
                 _mapDirty = true;
             }
 
             // Render data if valid
-            if (_mapDirty && weatherStations.Count >= 2)
+            if (_mapDirty && _weatherStations.Count >= 2)
             {
-                weatherMap.RegenerateFieldTexture(weatherStations);
+                weatherMap.RegenerateFieldTexture(_weatherStations);
                 _mapDirty = false;
             }
         }
 
         // Mouse Logic is eternal. This is dependant on the map
-        WeatherStation hoveredStation = weatherMap.GetStationMouseOverlap(_currentMouseState, weatherStations);
+        WeatherStation hoveredStation = weatherMap.GetStationMouseOverlap(_currentMouseState, _weatherStations);
         if (hoveredStation != null)
         {
             infoLabel = hoveredStation.DescribeLatest();
         }
-        else if (weatherStations.Count >= 2)
+        else if (_weatherStations.Count >= 2)
         {
-            var blended = weatherMap.GetInterpolatedDataAtMouse(_currentMouseState, weatherStations);
+            var blended = weatherMap.GetInterpolatedDataAtMouse(_currentMouseState, _weatherStations);
             infoLabel = blended.HasValue ? blended.Value.ToString().Replace("Time", "INTERPOLATED-TIME") : "";
         }
         else
@@ -187,14 +179,14 @@ public class LiveGame : Game
 
         _spriteBatch.Begin();
 
-        weatherMap.DrawStations(_spriteBatch, weatherStations);
+        weatherMap.DrawStations(_spriteBatch, _weatherStations);
 
-        _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.White);
+        _spriteBatch.DrawString(font, infoLabel.Replace("\t", "    "), new Vector2(8, 8), Color.Black);
 
 
         _spriteBatch.DrawString(font,
         $"CurrentTimeInSeconds: {_currentQueryTime:yyyy-MM-dd HH:mm:ss}\nIsobar step ({ISO_BAR_STEP * 100}%): {_calculatedIsoStep}",
-        new Vector2(8, 154), Color.White);
+        new Vector2(8, 154), Color.Black);
 
         _spriteBatch.End();
 
@@ -212,4 +204,36 @@ public class LiveGame : Game
         AlphaDestinationBlend = Blend.Zero,
         AlphaBlendFunction = BlendFunction.Add
     };
+
+    private WeatherStation GetOrAssignStation(string actualLabel, string baseLabel, List<WeatherStation> weatherStations)
+    {
+        // Allows for suffixs on deviceId:station.label.
+        // This will check with contains, then update the station to be the exact station.
+        // Yes, this is technically hardcoded.
+        // Why would there ever be percedual unknown weather stations??? Ask you self that question before thinking to deeply into this smelly slopa
+        WeatherStation? exactMatch = weatherStations.FirstOrDefault(s => s.Label == actualLabel);
+
+        if (exactMatch != null) return exactMatch;
+
+        WeatherStation station = weatherStations.First(s => s.Label.Contains(baseLabel));
+
+        station.Label = actualLabel;
+
+        return station;
+    }
+
+    private WeatherStation GetTargetStation(string deviceId, List<WeatherStation> weatherStations)
+    {
+
+        return deviceId switch
+        {
+            string id when id.Contains("PICO_WEATHER_01") => GetOrAssignStation(id, "PICO_WEATHER_01", weatherStations),
+            string id when id.Contains("PICO_WEATHER_02") => GetOrAssignStation(id, "PICO_WEATHER_02", weatherStations),
+            string id when id.Contains("PICO_WEATHER_03") => GetOrAssignStation(id, "PICO_WEATHER_03", weatherStations),
+            string id when id.Contains("PICO_WEATHER_04") => GetOrAssignStation(id, "PICO_WEATHER_04", weatherStations),
+            string id when id.Contains("PICO_WEATHER_05") => GetOrAssignStation(id, "PICO_WEATHER_05", weatherStations),
+            string id when id.Contains("PICO_WEATHER_06") => GetOrAssignStation(id, "PICO_WEATHER_06", weatherStations),
+            _ => throw new Exception($"Station '{deviceId}' does not exist!"),
+        };
+    }
 }

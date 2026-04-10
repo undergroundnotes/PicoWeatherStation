@@ -11,6 +11,6 @@ public record struct StationData(DateTime Time, float Temperature, float Pressur
         + "Temperature(C): " + Temperature + "\n"
         + "Humidity(%): " + Humidity + "\n"
         + "Wind(km/h): " + WindSpeed + "\n"
-        + "Pressure: " + Pressure;
+        + "Pressure(hPa): " + Pressure;
     }
 }

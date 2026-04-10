@@ -29,8 +29,8 @@ WeatherColorSettings colorSettings = new WeatherColorSettings(
 ConcurrentQueue<ServerJson> pendingReadings = new();
 
 ServerController serverController = new ServerController(
-    //new ServerReader(serverUrl),
-    new MockReader(),
+    new ServerReader(serverUrl),
+    /*new MockReader(),*/
     pendingReadings);
 
 await serverController.ConnectAsync();
