@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using DataVisualizer;
@@ -29,8 +28,8 @@ WeatherColorSettings colorSettings = new WeatherColorSettings(
 ConcurrentQueue<ServerJson> pendingReadings = new();
 
 ServerController serverController = new ServerController(
-    new ServerReader(serverUrl),
-    /*new MockReader(),*/
+    /*new ServerReader(serverUrl),*/
+    new MockReader(),
     pendingReadings);
 
 await serverController.ConnectAsync();
