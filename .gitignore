@@ -1,6 +1,7 @@
 app.manifest
 .config
 .vscode
+.vs
 bin
 Content
 obj
